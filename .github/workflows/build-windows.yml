@@ -23,7 +23,7 @@ jobs:
 
       - name: Reconstruct package-lock.json
         run: |
-          node -e "const fs=require('fs');const zlib=require('zlib');const b64=[...Array(17)].map((_,i)=>fs.readFileSync('.github/lock-b64/p'+String(i).padStart(2,'0')+'.txt','utf8')).join('').replace(/\s+/g,'');fs.writeFileSync('package-lock.json', zlib.gunzipSync(Buffer.from(b64,'base64')));console.log('lock bytes', fs.statSync('package-lock.json').size);"
+          node -e "const fs=require('fs');const zlib=require('zlib');let b64=[...Array(17)].map((_,i)=>fs.readFileSync('.github/lock-b64/p'+String(i).padStart(2,'0')+'.txt','utf8')).join('').replace(/\s+/g,'');b64=b64.replace('APo9fjkcrGeBfF','APo9fhkcrGeBfF').replace('lqTTqs/JC7vVM','lqTTqrt/JC7vVM');fs.writeFileSync('package-lock.json', zlib.gunzipSync(Buffer.from(b64,'base64')));console.log('lock bytes', fs.statSync('package-lock.json').size);"
 
       - name: Install
         run: npm ci
