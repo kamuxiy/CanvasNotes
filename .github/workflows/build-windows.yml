@@ -23,7 +23,7 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: npm install
 
       - name: Build Windows EXE
         run: npm run dist:win
