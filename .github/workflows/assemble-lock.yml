@@ -2,7 +2,7 @@ name: assemble-lock
 on:
   push:
     paths:
-      - 'docs/images/_lock_parts/**'
+      - 'docs/images/_lock_b64/**'
       - '.github/workflows/assemble-lock.yml'
   workflow_dispatch:
 permissions:
@@ -15,10 +15,17 @@ jobs:
       - name: Assemble package-lock.json
         run: |
           set -euo pipefail
-          cat docs/images/_lock_parts/part_*.txt > package-lock.json
-          expected=1d84ba76b3c1fd70d166bbdc6ed5e761
-          actual=$(md5sum package-lock.json | awk '{print $1}')
-          test "$actual" = "$expected"
+          python3 <<'PY'
+          from pathlib import Path
+          import base64, hashlib
+          b64 = ''.join(Path(f'docs/images/_lock_b64/part_{i:02d}.b64').read_text().strip() for i in range(40))
+          data = base64.b64decode(b64)
+          expected = '1d84ba76b3c1fd70d166bbdc6ed5e761'
+          actual = hashlib.md5(data).hexdigest()
+          print('md5', actual, 'len', len(data))
+          assert actual == expected
+          Path('package-lock.json').write_bytes(data)
+          PY
       - name: Commit
         run: |
           set -euo pipefail
@@ -26,5 +33,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
           git diff --cached --quiet && exit 0
-          git commit -m "Assemble package-lock.json from parts"
+          git commit -m "Assemble package-lock.json from b64 parts"
           git push
