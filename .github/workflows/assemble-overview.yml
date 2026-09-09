@@ -15,11 +15,19 @@ jobs:
       - name: Assemble overview.svg
         run: |
           set -euo pipefail
-          cat docs/images/_ov_parts/part_*.txt > docs/images/overview.svg
-          echo -n "md5 " && md5sum docs/images/overview.svg
-          expected=28558aa58fe32de850d5761a680b0fd8
-          actual=$(md5sum docs/images/overview.svg | awk '{print $1}')
-          test "$actual" = "$expected"
+          python3 <<'PY'
+          from pathlib import Path
+          import hashlib
+          text = ''.join(Path(f'docs/images/_ov_parts/part_{i:02d}.txt').read_text() for i in range(10))
+          expected = '28558aa58fe32de850d5761a680b0fd8'
+          if hashlib.md5(text.encode()).hexdigest() != expected:
+              # Repair known MCP transcription: 'fix' -> 'LS' in part_09
+              text = text.replace('hzLS50Xm', 'hzfix50Xm', 1)
+          actual = hashlib.md5(text.encode()).hexdigest()
+          print('md5', actual, 'len', len(text))
+          assert actual == expected, (actual, expected)
+          Path('docs/images/overview.svg').write_text(text)
+          PY
       - name: Commit overview.svg
         run: |
           set -euo pipefail
