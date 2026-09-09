@@ -22,13 +22,8 @@ jobs:
           node-version: 20
 
       - name: Reconstruct package-lock.json
-        shell: bash
         run: |
-          set -euo pipefail
-          cat .github/lock-b64/p{00..16}.txt | tr -d '\n\r' | base64 -d | gzip -dc > package-lock.json
-          test -s package-lock.json
-          head -c 80 package-lock.json
-          echo
+          node -e "const fs=require('fs');const zlib=require('zlib');const b64=[...Array(17)].map((_,i)=>fs.readFileSync('.github/lock-b64/p'+String(i).padStart(2,'0')+'.txt','utf8')).join('').replace(/\s+/g,'');fs.writeFileSync('package-lock.json', zlib.gunzipSync(Buffer.from(b64,'base64')));console.log('lock bytes', fs.statSync('package-lock.json').size);"
 
       - name: Install
         run: npm ci
