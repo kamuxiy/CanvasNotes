@@ -20,10 +20,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+
+      - name: Reconstruct package-lock.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/lock-b64/p{00..16}.txt | tr -d '\n\r' | base64 -d | gzip -dc > package-lock.json
+          test -s package-lock.json
+          head -c 80 package-lock.json
+          echo
 
       - name: Install
-        run: npm install
+        run: npm ci
 
       - name: Build Windows EXE
         run: npm run dist:win
