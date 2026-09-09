@@ -61,12 +61,12 @@
 ### 方式一：下载 Release（推荐）
 
 1. 前往 [Releases](https://github.com/kamuxiy/CanvasNotes/releases) 下载最新 Windows 包
-2. 任选其一：
-   - **便携版**：`画布笔记-*-portable.exe` — 解压/下载后直接双击运行
-   - **安装版**：`画布笔记-*-Setup.exe` — 按向导安装后从桌面快捷方式启动
+2. **推荐便携版（免安装）**：`CanvasNotes-*-portable.exe` — 双击即可运行  
+   若使用安装版：`CanvasNotes-*-Setup.exe` — 一键安装到当前用户目录
 3. 启动后即可在独立客户端窗口中编辑画布（无需打开浏览器）
 
-> 首次如被 SmartScreen 拦截，选择「仍要运行」（开源自建包常见提示）。
+> 首次如被 SmartScreen 拦截，选择「仍要运行」（开源自建包常见提示）。  
+> 便携版首次启动会解压运行时，可能等待数秒，属正常现象。
 
 ### 方式二：源码运行（开发）
 
@@ -93,8 +93,8 @@ npm run dist:win
 
 | 文件 | 说明 |
 | :--- | :--- |
-| `画布笔记-*-portable.exe` | 绿色便携版，双击即用 |
-| `画布笔记-*-Setup.exe` | NSIS 安装包 |
+| `CanvasNotes-*-portable.exe` | 绿色便携版，双击即用（推荐） |
+| `CanvasNotes-*-Setup.exe` | 一键安装包（当前用户目录） |
 
 也可在仓库 Actions 中手动触发 **Build Windows Client**，或推送 `v*` 标签自动构建并发布 Release。
 

@@ -7,6 +7,7 @@ const DEV_URL = process.env.VITE_DEV_SERVER_URL || 'http://127.0.0.1:45231'
 /** @type {BrowserWindow | null} */
 let mainWindow = null
 
+// Avoid hanging second-launch while first instance is still starting
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
@@ -14,8 +15,15 @@ if (!gotLock) {
   app.on('second-instance', () => {
     if (!mainWindow) return
     if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
     mainWindow.focus()
   })
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (!mainWindow.isVisible()) mainWindow.show()
+  mainWindow.focus()
 }
 
 function createWindow() {
@@ -41,15 +49,28 @@ function createWindow() {
 
   Menu.setApplicationMenu(null)
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show()
-  })
-
-  if (isDev) {
-    mainWindow.loadURL(DEV_URL)
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+  // ready-to-show can stall on some Windows machines; always force-show as fallback
+  let shown = false
+  const reveal = () => {
+    if (shown) return
+    shown = true
+    showMainWindow()
   }
+  mainWindow.once('ready-to-show', reveal)
+  setTimeout(reveal, 2500)
+
+  const target = isDev
+    ? DEV_URL
+    : path.join(__dirname, '../dist/index.html')
+
+  const loadPromise = isDev
+    ? mainWindow.loadURL(DEV_URL)
+    : mainWindow.loadFile(target)
+
+  loadPromise.catch((err) => {
+    console.error('Failed to load UI', err)
+    reveal()
+  })
 
   // Packaged client: stay on local pages only
   mainWindow.webContents.on('will-navigate', (event, url) => {

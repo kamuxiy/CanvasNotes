@@ -1,7 +1,7 @@
 {
   "name": "canvas-notes",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "画布笔记桌面客户端 — Upload Labs 风格节点 + ComfyUI 式连线",
   "author": "kamuXiY",
   "license": "MIT",
@@ -41,7 +41,8 @@
   },
   "build": {
     "appId": "com.kamuxiy.canvasnotes",
-    "productName": "画布笔记",
+    "productName": "CanvasNotes",
+    "executableName": "CanvasNotes",
     "copyright": "Copyright © 2026 kamuXiY",
     "directories": {
       "output": "release",
@@ -55,40 +56,39 @@
     "extraMetadata": {
       "main": "electron/main.cjs"
     },
+    "asar": true,
     "win": {
       "signAndEditExecutable": false,
       "target": [
         {
           "target": "portable",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         },
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
-      ],
-      "artifactName": "${productName}-${version}-Setup.${ext}"
+      ]
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.exe"
+      "artifactName": "CanvasNotes-${version}-portable.exe"
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "画布笔记",
-      "uninstallDisplayName": "画布笔记"
+      "uninstallDisplayName": "画布笔记",
+      "artifactName": "CanvasNotes-${version}-Setup.exe",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "unicode": true,
+      "warningsAsErrors": false
     },
     "linux": {
-      "target": [
-        "AppImage"
-      ],
+      "target": ["AppImage"],
       "category": "Office"
     }
   }
