@@ -14,8 +14,8 @@ jobs:
       - name: Download socket-dialog.svg
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 -o docs/images/socket-dialog.svg PLACEHOLDER_URL
-          expected=PLACEHOLDER_MD5
+          curl -fsSL --retry 3 -o docs/images/socket-dialog.svg https://litter.catbox.moe/ixhuat.svg
+          expected=0abd9f2613d6d626d20851810e621f67
           actual=$(md5sum docs/images/socket-dialog.svg | awk '{print $1}')
           echo "md5 $actual"
           test "$actual" = "$expected"
