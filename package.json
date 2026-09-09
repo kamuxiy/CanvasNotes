@@ -2,6 +2,9 @@
   "name": "canvas-notes",
   "private": true,
   "version": "1.0.0",
+  "description": "画布笔记桌面客户端 — Upload Labs 风格节点 + ComfyUI 式连线",
+  "author": "kamuXiY",
+  "license": "MIT",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -9,6 +12,9 @@
     "dev:desktop": "concurrently -k \"vite\" \"wait-on http://127.0.0.1:45231 && electron .\"",
     "desktop": "wait-on http://127.0.0.1:45231 && electron .",
     "build": "tsc -b && vite build",
+    "build:desktop": "npm run build && electron-builder --win",
+    "dist:win": "npm run build && electron-builder --win portable nsis",
+    "dist:dir": "npm run build && electron-builder --dir",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -26,10 +32,64 @@
     "@vitejs/plugin-react": "^6.1.0",
     "concurrently": "^10.0.5",
     "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
     "wait-on": "^9.1.0"
+  },
+  "build": {
+    "appId": "com.kamuxiy.canvasnotes",
+    "productName": "画布笔记",
+    "copyright": "Copyright © 2026 kamuXiY",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "画布笔记",
+      "uninstallDisplayName": "画布笔记"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    }
   }
 }

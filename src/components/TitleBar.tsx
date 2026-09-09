@@ -1,10 +1,4 @@
-type TitleBarProps = {
-  onMinimize?: () => void
-  onMaximize?: () => void
-  onClose?: () => void
-}
-
-export function TitleBar({ onMinimize, onMaximize, onClose }: TitleBarProps) {
+export function TitleBar() {
   const desktop = typeof window !== 'undefined' ? window.desktop : undefined
 
   return (
@@ -12,12 +6,12 @@ export function TitleBar({ onMinimize, onMaximize, onClose }: TitleBarProps) {
       <div className="titlebar-left">
         <div className="titlebar-brand">
           <span className="titlebar-mark" aria-hidden />
-          <span>Canvas Notes</span>
+          <span>画布笔记</span>
         </div>
       </div>
       <div className="titlebar-center">
         <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-          画布笔记 · Upload Labs 画面风格
+          Canvas Notes · 桌面客户端
         </span>
       </div>
       <div className="titlebar-right">
@@ -28,8 +22,7 @@ export function TitleBar({ onMinimize, onMaximize, onClose }: TitleBarProps) {
             title="最小化"
             aria-label="最小化"
             onClick={() => {
-              if (desktop?.isDesktop) void desktop.minimize()
-              else onMinimize?.()
+              void desktop?.minimize()
             }}
           />
           <button
@@ -38,8 +31,7 @@ export function TitleBar({ onMinimize, onMaximize, onClose }: TitleBarProps) {
             title="最大化"
             aria-label="最大化"
             onClick={() => {
-              if (desktop?.isDesktop) void desktop.maximize()
-              else onMaximize?.()
+              void desktop?.maximize()
             }}
           />
           <button
@@ -48,8 +40,7 @@ export function TitleBar({ onMinimize, onMaximize, onClose }: TitleBarProps) {
             title="关闭"
             aria-label="关闭"
             onClick={() => {
-              if (desktop?.isDesktop) void desktop.close()
-              else onClose?.()
+              void desktop?.close()
             }}
           />
         </div>

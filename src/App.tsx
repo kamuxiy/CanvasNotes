@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { TitleBar } from './components/TitleBar'
 import { BottomDock } from './components/BottomDock'
 import { CanvasBoard, StatusBar } from './components/CanvasBoard'
@@ -15,11 +15,6 @@ export default function App() {
     nodeId: string
     side: SocketSide
   } | null>(null)
-  const isDesktop = useMemo(
-    () => typeof window !== 'undefined' && !!window.desktop?.isDesktop,
-    [],
-  )
-  const [webMaximized, setWebMaximized] = useState(true)
 
   const placeNearCenter = useCallback(
     (kind: NodeKind) => {
@@ -64,34 +59,9 @@ export default function App() {
   }, [store])
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        padding: isDesktop || webMaximized ? 0 : 16,
-        background:
-          isDesktop || webMaximized
-            ? 'transparent'
-            : 'radial-gradient(ellipse at top, #1a2740 0%, #070b14 70%)',
-      }}
-    >
-      <div
-        className={`app-shell${isDesktop ? ' is-desktop' : ''}`}
-        style={
-          isDesktop || webMaximized
-            ? { borderRadius: 0, border: 'none', height: '100%' }
-            : undefined
-        }
-      >
-        <TitleBar
-          onMinimize={() => setWebMaximized(false)}
-          onMaximize={() => setWebMaximized((v) => !v)}
-          onClose={() => {
-            if (window.confirm('关闭 Canvas Notes？数据已保存在本地。')) {
-              setWebMaximized(false)
-            }
-          }}
-        />
+    <div className="app-root">
+      <div className="app-shell is-desktop">
+        <TitleBar />
         <div
           className="workspace"
           ref={workspaceRef}
