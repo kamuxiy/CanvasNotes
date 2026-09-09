@@ -37,7 +37,11 @@ button { cursor: pointer; }
   background: #09101c;
   overflow: hidden;
 }
-.app-shell.is-desktop { border: none; }
+.app-root {
+  width: 100%;
+  height: 100%;
+}
+.app-shell.is-desktop { border: none; border-radius: 0; }
 
 .titlebar {
   height: var(--titlebar-h);
