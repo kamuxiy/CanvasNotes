@@ -14,10 +14,16 @@ jobs:
       - name: Download and verify duplicate.svg
         run: |
           set -euo pipefail
-          curl -fsSL -o docs/images/duplicate.svg https://litter.catbox.moe/mf8mj1.svg
+          mkdir -p docs/images
+          for i in 1 2 3 4 5; do
+            if curl -fsSL --retry 3 --retry-delay 2 -o docs/images/duplicate.svg https://litter.catbox.moe/8c0d4x.svg; then
+              break
+            fi
+            sleep 3
+          done
           expected=40c533a009f6024dfe017427b6b027f0
           actual=$(md5sum docs/images/duplicate.svg | awk '{print $1}')
-          echo "md5 $actual"
+          echo "md5 $actual size $(wc -c < docs/images/duplicate.svg)"
           test "$actual" = "$expected"
       - name: Commit
         run: |
