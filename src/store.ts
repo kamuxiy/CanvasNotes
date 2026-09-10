@@ -328,6 +328,7 @@ export function deleteWorkspaceDoc(id: string) {
   localStorage.removeItem(WS_DOC_PREFIX + id)
   saveWorkspaceIndex(listWorkspaceIndex().filter((w) => w.id !== id))
   const recent = listRecent().filter((r) => r !== id)
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recent))
   if (getActiveWorkspaceId() === id) setActiveWorkspaceId(null)
 }
 
