@@ -8,12 +8,17 @@ import { SocketPort } from './SocketPort'
 type NodeCardProps = {
   node: CanvasNode
   selected: boolean
+  selectedIds?: string[]
   zoom: number
   wiringFromKind?: Socket['kind'] | null
   activeSocketId?: string | null
   onSelect: (id: string, additive: boolean) => void
   onMove: (id: string, x: number, y: number) => void
+  onMoveMany?: (moves: { id: string; x: number; y: number }[]) => void
+  /** All canvas nodes — used to resolve multi-drag start positions */
+  allNodes?: CanvasNode[]
   onUpdateData: (id: string, data: CanvasNode['data']) => void
+  onHeight?: (id: string, height: number) => void
   onSocketPointerDown: (e: ReactPointerEvent, nodeId: string, socket: Socket) => void
   onSocketEnter: (nodeId: string, socket: Socket) => void
   onSocketLeave: () => void
@@ -202,12 +207,16 @@ export function getSocketWorldPos(
 export function NodeCard({
   node,
   selected,
+  selectedIds = [],
   zoom,
   wiringFromKind,
   activeSocketId,
   onSelect,
   onMove,
+  onMoveMany,
+  allNodes = [],
   onUpdateData,
+  onHeight,
   onSocketPointerDown,
   onSocketEnter,
   onSocketLeave,
@@ -229,10 +238,13 @@ export function NodeCard({
   const iconGlyph = node.kind === 'note' ? 'N' : node.kind === 'date' ? 'D' : 'L'
 
   useLayoutEffect(() => {
+    if (node.kind === 'group') return
     const el = rootRef.current
     if (!el) return
     const measure = () => {
-      setHeight(el.offsetHeight)
+      const h = el.offsetHeight
+      setHeight(h)
+      onHeight?.(node.id, h)
       const rootRect = el.getBoundingClientRect()
       const next: Record<string, number> = {}
       el.querySelectorAll<HTMLElement>('[data-socket-id].socket-dot').forEach((dot) => {
@@ -249,7 +261,9 @@ export function NodeCard({
     ro.observe(el)
     if (socketAreaRef.current) ro.observe(socketAreaRef.current)
     return () => ro.disconnect()
-  }, [node.data, node.sockets, node.id, zoom, onSocketOffsets, height])
+  }, [node.data, node.sockets, node.id, node.kind, zoom, onSocketOffsets, onHeight, height])
+
+  if (node.kind === 'group') return null
 
   return (
     <article
@@ -279,13 +293,41 @@ export function NodeCard({
           const startY = e.clientY
           const origX = node.x
           const origY = node.y
+          const multiDrag =
+            selectedIds.includes(node.id) &&
+            selectedIds.length > 1 &&
+            onMoveMany != null
+          const peerOrigins = multiDrag
+            ? allNodes
+                .filter(
+                  (n) =>
+                    selectedIds.includes(n.id) &&
+                    n.id !== node.id &&
+                    n.kind !== 'group',
+                )
+                .map((n) => ({ id: n.id, x: n.x, y: n.y }))
+            : []
           let dragging = false
           const move = (ev: PointerEvent) => {
             const dx = ev.clientX - startX
             const dy = ev.clientY - startY
             if (!dragging && dx * dx + dy * dy < 9) return
             dragging = true
-            onMove(node.id, origX + dx / zoom, origY + dy / zoom)
+            const worldDx = dx / zoom
+            const worldDy = dy / zoom
+            if (multiDrag && onMoveMany) {
+              const moves = [
+                { id: node.id, x: origX + worldDx, y: origY + worldDy },
+                ...peerOrigins.map((p) => ({
+                  id: p.id,
+                  x: p.x + worldDx,
+                  y: p.y + worldDy,
+                })),
+              ]
+              onMoveMany(moves)
+            } else {
+              onMove(node.id, origX + worldDx, origY + worldDy)
+            }
           }
           const up = () => {
             window.removeEventListener('pointermove', move)
