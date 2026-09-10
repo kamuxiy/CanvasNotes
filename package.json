@@ -1,7 +1,7 @@
 {
   "name": "canvas-notes",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "画布笔记桌面客户端 — Upload Labs 风格节点 + ComfyUI 式连线",
   "author": "kamuXiY",
   "license": "MIT",
