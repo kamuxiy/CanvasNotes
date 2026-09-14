@@ -246,16 +246,20 @@ function MarkdownFields({
         <button
           type="button"
           className={`mini-btn${mode === 'edit' ? ' active' : ''}`}
-          onClick={() => setMode('edit')}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setMode('edit')
+          }}
         >
           编辑
         </button>
         <button
           type="button"
           className={`mini-btn${mode === 'preview' ? ' active' : ''}`}
-          onClick={() => setMode('preview')}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setMode('preview')
+          }}
         >
           预览
         </button>
