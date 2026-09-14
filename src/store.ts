@@ -6,6 +6,7 @@ import type {
   DateData,
   GroupData,
   ListData,
+  MarkdownData,
   NodeData,
   NodeKind,
   NoteData,
@@ -43,6 +44,11 @@ export function createNodeData(kind: NodeKind): NodeData {
       } satisfies DateData
     case 'list':
       return { title: '信息列表', items: [''] } satisfies ListData
+    case 'markdown':
+      return {
+        title: 'Markdown',
+        content: '# 新文档\n\n在此编写 Markdown…',
+      } satisfies MarkdownData
     case 'group':
       return {
         title: '分组',
@@ -58,8 +64,8 @@ export function createNode(kind: NodeKind, x: number, y: number): CanvasNode {
     kind,
     x,
     y,
-    width: isGroup ? 360 : kind === 'list' ? 260 : 240,
-    height: isGroup ? 240 : 160,
+    width: isGroup ? 360 : kind === 'markdown' ? 300 : kind === 'list' ? 260 : 240,
+    height: isGroup ? 240 : kind === 'markdown' ? 220 : 160,
     sockets: createDefaultSockets(kind),
     data: createNodeData(kind),
   }
@@ -110,6 +116,13 @@ export function createDemoState(): AppState {
     body: '第三方 SDK 文档滞后，需要备用方案。',
   }
 
+  const mdA = createNode('markdown', 460, 420)
+  mdA.data = {
+    title: '发布说明草稿',
+    content:
+      '# 发布说明草稿\n\n- 新增 Markdown 节点\n- 文本框可四向调整大小\n\n> 一级标题会同步为组件标题。',
+  }
+
   const group = createNode('group', 400, 360)
   group.width = 420
   group.height = 280
@@ -119,6 +132,7 @@ export function createDemoState(): AppState {
   const noteBIn = noteB.sockets.find((s) => s.side === 'left')!
   const dateOut = dateA.sockets.find((s) => s.side === 'right')!
   const listIn = listA.sockets.find((s) => s.side === 'left')!
+  const mdIn = mdA.sockets.find((s) => s.side === 'left')!
 
   const noteDateOut: Socket = {
     id: uuid(),
@@ -136,11 +150,12 @@ export function createDemoState(): AppState {
   dateA.sockets.push(dateFromNote)
 
   return {
-    nodes: [group, noteA, dateA, listA, noteB],
+    nodes: [group, noteA, dateA, listA, noteB, mdA],
     connections: [
       createConnection(noteA.id, noteAOut.id, noteB.id, noteBIn.id),
       createConnection(noteA.id, noteDateOut.id, dateA.id, dateFromNote.id),
       createConnection(dateA.id, dateOut.id, listA.id, listIn.id),
+      createConnection(noteB.id, noteB.sockets.find((s) => s.side === 'right')!.id, mdA.id, mdIn.id),
     ],
     viewport: defaultViewport(),
   }
