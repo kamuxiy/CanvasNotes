@@ -10,17 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decode and write src/index.css
+      - name: Patch base CSS to exact local
         run: |
+          set -euo pipefail
+          curl -fsSL -o base.css \
+            https://raw.githubusercontent.com/kamuxiy/CanvasNotes/bd7c23f889b78726dcd95ec1a61fa2b513308270/src/index.css
+          patch -o src/index.css base.css .github/sync-css/index.css.patch
           python3 - <<'PY'
           from pathlib import Path
-          import base64, gzip, hashlib
-          b64 = Path('.github/sync-css/index.css.gz.b64').read_text().strip()
-          content = gzip.decompress(base64.b64decode(b64)).decode()
-          Path('src/index.css').write_text(content)
-          print(len(content), hashlib.sha256(content.encode()).hexdigest())
-          expected = '29d71fdbfe8a6524e845c6b45357647eb568b2bb9a73670c3a1d1c866d3660f4'
-          assert hashlib.sha256(content.encode()).hexdigest() == expected
+          import hashlib
+          content = Path('src/index.css').read_text()
+          digest = hashlib.sha256(content.encode()).hexdigest()
+          print(len(content), digest)
+          assert digest == '29d71fdbfe8a6524e845c6b45357647eb568b2bb9a73670c3a1d1c866d3660f4'
+          assert 'md-editor' in content and 'md-preview' in content
           PY
       - name: Commit exact CSS
         run: |
@@ -28,4 +31,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/index.css
           git diff --cached --quiet || git commit -m "Sync styles for Markdown nodes and text resize/focus"
+          git push
+      - name: Cleanup transport files
+        run: |
+          git rm -r .github/sync-css || true
+          git rm -f .github/workflows/apply-sync-css.yml || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --cached --quiet || git commit -m "chore: remove CSS sync transport files"
           git push
