@@ -116,7 +116,7 @@ export function createDemoState(): AppState {
     body: '第三方 SDK 文档滞后，需要备用方案。',
   }
 
-  const mdA = createNode('markdown', 460, 420)
+  const mdA = createNode('markdown', 820, 420)
   mdA.data = {
     title: '发布说明草稿',
     content:
@@ -407,3 +407,4 @@ export function downloadText(filename: string, text: string) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
