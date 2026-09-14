@@ -3,7 +3,7 @@ export const APP_META = {
   displayName: '画布笔记',
   productName: 'CanvasNotes',
   author: 'kamuXiY',
-  version: '1.1.0',
+  version: '1.2.0',
   description: '画布笔记桌面客户端 — Upload Labs 风格节点 + ComfyUI 式连线',
   license: 'MIT',
   githubUrl: 'https://github.com/kamuxiy/CanvasNotes',

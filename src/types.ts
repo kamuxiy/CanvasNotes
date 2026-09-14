@@ -1,6 +1,6 @@
 export type SocketKind = 'generic' | 'event' | 'date' | 'info'
 export type SocketSide = 'left' | 'right'
-export type NodeKind = 'note' | 'date' | 'list' | 'group'
+export type NodeKind = 'note' | 'date' | 'list' | 'markdown' | 'group'
 export type ToolMode = 'select' | 'marquee'
 
 export interface Socket {
@@ -26,13 +26,19 @@ export interface ListData {
   items: string[]
 }
 
+export interface MarkdownData {
+  /** Synced from the first `#` heading in content when present */
+  title: string
+  content: string
+}
+
 export interface GroupData {
   title: string
   /** CSS color for translucent body */
   color: string
 }
 
-export type NodeData = NoteData | DateData | ListData | GroupData
+export type NodeData = NoteData | DateData | ListData | MarkdownData | GroupData
 
 export interface CanvasNode {
   id: string
@@ -90,6 +96,7 @@ export const NODE_KIND_LABEL: Record<NodeKind, string> = {
   note: '便签 / 记事本',
   date: '开始 / 截止日期',
   list: '信息列表',
+  markdown: 'Markdown',
   group: '分组',
 }
 
