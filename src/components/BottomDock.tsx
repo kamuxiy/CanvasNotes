@@ -67,6 +67,26 @@ function IconList() {
   )
 }
 
+function IconMarkdown() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 6h16v12H4V6Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7 15V9l2.5 3L12 9v6M15 12.5V15h2.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function IconGroup() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -250,6 +270,10 @@ export function BottomDock({
         <IconList />
         <span>清单</span>
       </button>
+      <button type="button" className="dock-btn" onClick={() => onAdd('markdown')} title="Markdown">
+        <IconMarkdown />
+        <span>Markdown</span>
+      </button>
       <button type="button" className="dock-btn" onClick={() => onAdd('group')} title="分组">
         <IconGroup />
         <span>分组</span>
@@ -402,7 +426,7 @@ export function BottomDock({
         </div>
       </div>
 
-      <div className={`bottom-dock-inner${compact ? ' is-compact' : ''}`}>
+      <div className={`bottom-dock-inner${compact ? ' is-compact' : ''`}>
         {!compact ? (
           <>
             {pointerItems}
