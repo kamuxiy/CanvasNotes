@@ -38,6 +38,9 @@ type NodeCardProps = {
 
 const FIELD_SELECTOR = 'input, textarea, select, button, a, label'
 
+/** Survives NodeCard remounts so Markdown preview mode is not lost. */
+const markdownModeByNodeId = new Map<string, 'edit' | 'preview'>()
+
 /** Keep focus on text fields; stop canvas/node drag handlers from stealing the event. */
 function fieldPointerDown(e: ReactPointerEvent) {
   e.stopPropagation()
@@ -223,18 +226,27 @@ function ListFields({
 }
 
 function MarkdownFields({
+  nodeId,
   data,
   onChange,
   accent,
 }: {
+  nodeId: string
   data: MarkdownData
   onChange: (data: MarkdownData) => void
   accent: string
 }) {
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const [mode, setMode] = useState<'edit' | 'preview'>(
+    () => markdownModeByNodeId.get(nodeId) ?? 'edit',
+  )
+  const setViewMode = (next: 'edit' | 'preview') => {
+    markdownModeByNodeId.set(nodeId, next)
+    setMode(next)
+  }
   const html = useMemo(() => {
     try {
-      return marked.parse(data.content || '', { async: false }) as string
+      const raw = marked.parse(data.content || '', { async: false })
+      return typeof raw === 'string' ? raw : '<p></p>'
     } catch {
       return '<p></p>'
     }
@@ -242,13 +254,20 @@ function MarkdownFields({
 
   return (
     <>
-      <div className="md-toolbar">
+      <div className="md-toolbar" data-md-mode={mode}>
         <button
           type="button"
           className={`mini-btn${mode === 'edit' ? ' active' : ''}`}
+          aria-pressed={mode === 'edit'}
           onPointerDown={(e) => {
+            e.preventDefault()
             e.stopPropagation()
-            setMode('edit')
+            setViewMode('edit')
+          }}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setViewMode('edit')
           }}
         >
           编辑
@@ -256,9 +275,16 @@ function MarkdownFields({
         <button
           type="button"
           className={`mini-btn${mode === 'preview' ? ' active' : ''}`}
+          aria-pressed={mode === 'preview'}
           onPointerDown={(e) => {
+            e.preventDefault()
             e.stopPropagation()
-            setMode('preview')
+            setViewMode('preview')
+          }}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setViewMode('preview')
           }}
         >
           预览
@@ -296,7 +322,10 @@ function MarkdownFields({
       ) : (
         <div
           className="md-preview"
-          dangerouslySetInnerHTML={{ __html: html }}
+          data-md-preview="true"
+          dangerouslySetInnerHTML={{
+            __html: html.trim() ? html : '<p class="md-preview-empty">（预览）</p>',
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         />
       )}
@@ -403,6 +432,10 @@ export function NodeCard({
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest('.socket-dot')) return
         const target = e.target as HTMLElement
+        if (target.closest('button')) {
+          e.stopPropagation()
+          return
+        }
         if (target.closest(FIELD_SELECTOR)) {
           // Selecting while focusing an input can remount/re-render and steal caret.
           e.stopPropagation()
@@ -502,6 +535,7 @@ export function NodeCard({
         )}
         {node.kind === 'markdown' && (
           <MarkdownFields
+            nodeId={node.id}
             data={node.data as MarkdownData}
             accent={accent}
             onChange={(data) => onUpdateData(node.id, data)}
