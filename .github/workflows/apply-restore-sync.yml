@@ -1,0 +1,42 @@
+name: Apply restore gzip sync
+on:
+  push:
+    paths:
+      - '.github/sync-restore/payload.gz.b64'
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack exact files
+        run: |
+          python3 - <<'PY'
+          import base64, gzip, struct, hashlib
+          from pathlib import Path
+          b64 = Path('.github/sync-restore/payload.gz.b64').read_text().strip()
+          data = gzip.decompress(base64.b64decode(b64))
+          pos = 0
+          expected = {
+            'src/components/NodeCard.tsx': 'b4d19a8b57aab6d8f5603f969c7729a5d3396ddf725c08ec8546adbc96737cde',
+            'src/index.css': '67a1e0854bfeabfe8b8455e0546439de38861362d510d45d44144b2e3e1e6774',
+          }
+          while pos < len(data):
+              plen = struct.unpack('>I', data[pos:pos+4])[0]; pos += 4
+              path = data[pos:pos+plen].decode(); pos += plen
+              clen = struct.unpack('>I', data[pos:pos+4])[0]; pos += 4
+              content = data[pos:pos+clen]; pos += clen
+              Path(path).parent.mkdir(parents=True, exist_ok=True)
+              Path(path).write_bytes(content)
+              h = hashlib.sha256(content).hexdigest()
+              print(path, len(content), h)
+              assert h == expected[path], (h, expected[path])
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/NodeCard.tsx src/index.css
+          git diff --cached --quiet || git commit -m "Restore NodeCard.tsx and index.css corrupted by bad sync"
+          git push
