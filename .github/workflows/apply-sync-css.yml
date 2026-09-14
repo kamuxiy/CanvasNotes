@@ -10,17 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Assemble index.css
+      - name: Decode and write src/index.css
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import hashlib
-          parts = sorted(Path('.github/sync-css').glob('part_*.txt'))
-          content = ''.join(p.read_text() for p in parts)
+          import base64, gzip, hashlib
+          b64 = Path('.github/sync-css/index.css.gz.b64').read_text().strip()
+          content = gzip.decompress(base64.b64decode(b64)).decode()
           Path('src/index.css').write_text(content)
           print(len(content), hashlib.sha256(content.encode()).hexdigest())
+          expected = '29d71fdbfe8a6524e845c6b45357647eb568b2bb9a73670c3a1d1c866d3660f4'
+          assert hashlib.sha256(content.encode()).hexdigest() == expected
           PY
-      - name: Commit
+      - name: Commit exact CSS
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
