@@ -1,0 +1,29 @@
+name: Apply synced index.css parts
+on:
+  push:
+    paths:
+      - '.github/sync-css/**'
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble index.css
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          parts = sorted(Path('.github/sync-css').glob('part_*.txt'))
+          content = ''.join(p.read_text() for p in parts)
+          Path('src/index.css').write_text(content)
+          print(len(content), hashlib.sha256(content.encode()).hexdigest())
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/index.css
+          git diff --cached --quiet || git commit -m "Sync styles for Markdown nodes and text resize/focus"
+          git push
