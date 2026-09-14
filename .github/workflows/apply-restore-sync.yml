@@ -2,7 +2,9 @@ name: Apply restore gzip sync
 on:
   push:
     paths:
-      - '.github/sync-restore/payload.gz.b64'
+      - '.github/sync-restore/**'
+      - '.github/workflows/apply-restore-sync.yml'
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -15,7 +17,9 @@ jobs:
           python3 - <<'PY'
           import base64, gzip, struct, hashlib
           from pathlib import Path
-          b64 = Path('.github/sync-restore/payload.gz.b64').read_text().strip()
+          parts = sorted(Path('.github/sync-restore').glob('payload.part*.b64'))
+          assert parts, 'missing payload parts'
+          b64 = ''.join(p.read_text().strip() for p in parts)
           data = gzip.decompress(base64.b64decode(b64))
           pos = 0
           expected = {
