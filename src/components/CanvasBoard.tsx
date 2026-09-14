@@ -197,16 +197,21 @@ export function CanvasBoard({
   }, [connections, resolveSocketPos, nodes])
 
   useEffect(() => {
+    const isTypingTarget = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false
+      const tag = el.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+      if (el.isContentEditable) return true
+      return Boolean(el.closest('input, textarea, select, [contenteditable="true"]'))
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
-        const tag = (e.target as HTMLElement)?.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+        if (isTypingTarget(e.target)) return
         e.preventDefault()
         setSpaceDown(true)
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const tag = (e.target as HTMLElement)?.tagName
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+        if (isTypingTarget(e.target)) return
         if (selectedIds.length) {
           e.preventDefault()
           deleteNodes(selectedIds)
@@ -631,6 +636,7 @@ export function CanvasBoard({
               ['note', '便签'],
               ['date', '日期'],
               ['list', '清单'],
+              ['markdown', 'Markdown'],
               ['group', '分组'],
             ] as const
           ).map(([kind, label]) => (
