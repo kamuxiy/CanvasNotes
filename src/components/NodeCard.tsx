@@ -1,1 +1,1 @@
-{{CONTENT_FROM_FILE}}
+@file:///tmp/exact_NodeCard.tsx
