@@ -1,8 +1,17 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { CanvasNode, DateData, ListData, NoteData, Socket } from '../types'
+import { marked } from 'marked'
+import type {
+  CanvasNode,
+  DateData,
+  ListData,
+  MarkdownData,
+  NoteData,
+  Socket,
+} from '../types'
 import { NODE_KIND_LABEL, SOCKET_COLORS } from '../types'
 import { kindsCompatible } from '../store'
+import { extractMarkdownH1 } from '../utils/markdown'
 import { SocketPort } from './SocketPort'
 
 type NodeCardProps = {
@@ -27,6 +36,21 @@ type NodeCardProps = {
   onSocketOffsets: (nodeId: string, offsets: Record<string, number>) => void
 }
 
+const FIELD_SELECTOR = 'input, textarea, select, button, a, label'
+
+/** Keep focus on text fields; stop canvas/node drag handlers from stealing the event. */
+function fieldPointerDown(e: ReactPointerEvent) {
+  e.stopPropagation()
+  const el = e.currentTarget as HTMLElement
+  if (typeof el.focus === 'function') {
+    try {
+      el.focus({ preventScroll: true })
+    } catch {
+      el.focus()
+    }
+  }
+}
+
 function NoteFields({
   data,
   onChange,
@@ -43,12 +67,13 @@ function NoteFields({
           <span className="glyph" />
           标题
         </div>
-        <input
-          type="text"
+        <textarea
+          className="field-single"
+          rows={1}
           value={data.title}
           placeholder="标题"
           onChange={(e) => onChange({ ...data, title: e.target.value })}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={fieldPointerDown}
         />
         <div className="ul-bar">
           <span
@@ -68,7 +93,7 @@ function NoteFields({
           value={data.body}
           placeholder="记事内容…"
           onChange={(e) => onChange({ ...data, body: e.target.value })}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={fieldPointerDown}
         />
       </div>
     </>
@@ -91,12 +116,13 @@ function DateFields({
           <span className="glyph" />
           日程名称
         </div>
-        <input
-          type="text"
+        <textarea
+          className="field-single"
+          rows={1}
           value={data.label}
           placeholder="日程名称"
           onChange={(e) => onChange({ ...data, label: e.target.value })}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={fieldPointerDown}
         />
         <div className="ul-bar">
           <span style={{ width: '62%', background: accent }} />
@@ -109,7 +135,7 @@ function DateFields({
             type="date"
             value={data.startDate}
             onChange={(e) => onChange({ ...data, startDate: e.target.value })}
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={fieldPointerDown}
           />
         </label>
         <label>
@@ -118,7 +144,7 @@ function DateFields({
             type="date"
             value={data.endDate}
             onChange={(e) => onChange({ ...data, endDate: e.target.value })}
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={fieldPointerDown}
           />
         </label>
       </div>
@@ -144,12 +170,13 @@ function ListFields({
           <span className="glyph" />
           列表标题
         </div>
-        <input
-          type="text"
+        <textarea
+          className="field-single"
+          rows={1}
           value={data.title}
           placeholder="列表标题"
           onChange={(e) => onChange({ ...data, title: e.target.value })}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={fieldPointerDown}
         />
         <div className="ul-bar">
           <span style={{ width: `${ratio}%`, background: accent }} />
@@ -157,8 +184,9 @@ function ListFields({
       </div>
       {data.items.map((item, index) => (
         <div className="list-item-row" key={index}>
-          <input
-            type="text"
+          <textarea
+            className="field-single"
+            rows={1}
             value={item}
             placeholder={`条目 ${index + 1}`}
             onChange={(e) => {
@@ -166,7 +194,7 @@ function ListFields({
               items[index] = e.target.value
               onChange({ ...data, items })
             }}
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={fieldPointerDown}
           />
           <button
             type="button"
@@ -190,6 +218,84 @@ function ListFields({
       >
         + 条目
       </button>
+    </>
+  )
+}
+
+function MarkdownFields({
+  data,
+  onChange,
+  accent,
+}: {
+  data: MarkdownData
+  onChange: (data: MarkdownData) => void
+  accent: string
+}) {
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const html = useMemo(() => {
+    try {
+      return marked.parse(data.content || '', { async: false }) as string
+    } catch {
+      return '<p></p>'
+    }
+  }, [data.content])
+
+  return (
+    <>
+      <div className="md-toolbar">
+        <button
+          type="button"
+          className={`mini-btn${mode === 'edit' ? ' active' : ''}`}
+          onClick={() => setMode('edit')}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          编辑
+        </button>
+        <button
+          type="button"
+          className={`mini-btn${mode === 'preview' ? ' active' : ''}`}
+          onClick={() => setMode('preview')}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          预览
+        </button>
+        <div className="ul-bar md-bar">
+          <span
+            style={{
+              width: `${Math.min(100, Math.max(10, data.content.length / 4))}%`,
+              background: accent,
+            }}
+          />
+        </div>
+      </div>
+      {mode === 'edit' ? (
+        <div className="ul-row">
+          <div className="ul-row-label">
+            <span className="glyph" />
+            Markdown 正文（首个 # 标题 → 组件标题）
+          </div>
+          <textarea
+            className="md-editor"
+            value={data.content}
+            placeholder={'# 标题\n\n正文…'}
+            onChange={(e) => {
+              const content = e.target.value
+              const h1 = extractMarkdownH1(content)
+              onChange({
+                content,
+                title: h1 ?? (data.title.trim() || 'Markdown'),
+              })
+            }}
+            onPointerDown={fieldPointerDown}
+          />
+        </div>
+      ) : (
+        <div
+          className="md-preview"
+          dangerouslySetInnerHTML={{ __html: html }}
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+      )}
     </>
   )
 }
@@ -233,9 +339,23 @@ export function NodeCard({
       ? SOCKET_COLORS.event
       : node.kind === 'date'
         ? SOCKET_COLORS.date
-        : SOCKET_COLORS.info
+        : node.kind === 'markdown'
+          ? '#c4a5ff'
+          : SOCKET_COLORS.info
 
-  const iconGlyph = node.kind === 'note' ? 'N' : node.kind === 'date' ? 'D' : 'L'
+  const iconGlyph =
+    node.kind === 'note'
+      ? 'N'
+      : node.kind === 'date'
+        ? 'D'
+        : node.kind === 'markdown'
+          ? 'M'
+          : 'L'
+
+  const headerTitle =
+    node.kind === 'markdown'
+      ? (node.data as MarkdownData).title || 'Markdown'
+      : NODE_KIND_LABEL[node.kind]
 
   useLayoutEffect(() => {
     if (node.kind === 'group') return
@@ -261,7 +381,7 @@ export function NodeCard({
     ro.observe(el)
     if (socketAreaRef.current) ro.observe(socketAreaRef.current)
     return () => ro.disconnect()
-  }, [node.data, node.sockets, node.id, node.kind, zoom, onSocketOffsets, onHeight, height])
+  }, [node.data, node.sockets, node.id, node.kind, zoom, onSocketOffsets, onHeight])
 
   if (node.kind === 'group') return null
 
@@ -278,6 +398,13 @@ export function NodeCard({
       }}
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest('.socket-dot')) return
+        const target = e.target as HTMLElement
+        if (target.closest(FIELD_SELECTOR)) {
+          // Selecting while focusing an input can remount/re-render and steal caret.
+          e.stopPropagation()
+          if (!selected || e.shiftKey) onSelect(node.id, e.shiftKey)
+          return
+        }
         onSelect(node.id, e.shiftKey)
       }}
     >
@@ -286,7 +413,7 @@ export function NodeCard({
         onPointerDown={(e) => {
           if (e.button !== 0) return
           const target = e.target as HTMLElement
-          if (target.closest('button, input, textarea, select, a')) return
+          if (target.closest(FIELD_SELECTOR)) return
           e.stopPropagation()
           onSelect(node.id, e.shiftKey)
           const startX = e.clientX
@@ -338,8 +465,12 @@ export function NodeCard({
         }}
       >
         <div className="node-title-wrap">
-          <span className="node-icon">{iconGlyph}</span>
-          <span className="node-kind">{NODE_KIND_LABEL[node.kind]}</span>
+          <span className="node-icon" style={node.kind === 'markdown' ? { background: accent } : undefined}>
+            {iconGlyph}
+          </span>
+          <span className="node-kind" title={headerTitle}>
+            {headerTitle}
+          </span>
         </div>
       </div>
 
@@ -361,6 +492,13 @@ export function NodeCard({
         {node.kind === 'list' && (
           <ListFields
             data={node.data as ListData}
+            accent={accent}
+            onChange={(data) => onUpdateData(node.id, data)}
+          />
+        )}
+        {node.kind === 'markdown' && (
+          <MarkdownFields
+            data={node.data as MarkdownData}
             accent={accent}
             onChange={(data) => onUpdateData(node.id, data)}
           />
