@@ -5,10 +5,13 @@ import {
   createConnection,
   createDemoState,
   createNode,
+  getActiveWorkspaceId,
   loadState,
+  loadWorkspaceDoc,
   membersOfGroup,
   normalizeConnectionEndpoints,
   saveState,
+  saveWorkspaceDoc,
 } from '../store'
 import type {
   AppState,
@@ -124,6 +127,7 @@ function reducer(state: AppState, action: Action): AppState {
         y: node.y + 36,
         sockets: node.sockets.map((s) => ({ ...s, id: uuid() })),
         data: structuredClone(node.data),
+        fieldSizes: node.fieldSizes ? structuredClone(node.fieldSizes) : {},
       }))
       return { ...state, nodes: [...state.nodes, ...clones] }
     }
@@ -236,6 +240,15 @@ export function useCanvasStore() {
   useEffect(() => {
     if (!ready.current) return
     saveState(state)
+    const id = getActiveWorkspaceId()
+    if (!id) return
+    const existing = loadWorkspaceDoc(id)
+    if (!existing) return
+    saveWorkspaceDoc({
+      ...existing,
+      updatedAt: Date.now(),
+      state,
+    })
   }, [state])
 
   return {
