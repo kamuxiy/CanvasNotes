@@ -26,9 +26,10 @@ const RECENT_KEY = 'canvas-notes-ws-recent'
 
 export function createDefaultSockets(kind: NodeKind): Socket[] {
   if (kind === 'group') return []
+  const socketKind: SocketKind = kind === 'date' ? 'date' : 'generic'
   return [
-    { id: uuid(), name: '输入', kind: 'generic', side: 'left' },
-    { id: uuid(), name: '输出', kind: 'generic', side: 'right' },
+    { id: uuid(), name: '输入', kind: socketKind, side: 'left' },
+    { id: uuid(), name: '输出', kind: socketKind, side: 'right' },
   ]
 }
 
@@ -68,6 +69,7 @@ export function createNode(kind: NodeKind, x: number, y: number): CanvasNode {
     height: isGroup ? 240 : kind === 'markdown' ? 220 : 160,
     sockets: createDefaultSockets(kind),
     data: createNodeData(kind),
+    fieldSizes: {},
   }
 }
 
@@ -165,8 +167,10 @@ function migrateNode(raw: CanvasNode): CanvasNode {
   return {
     ...raw,
     height: raw.height ?? (raw.kind === 'group' ? 240 : 160),
+    width: raw.width ?? (raw.kind === 'group' ? 360 : 240),
     sockets: raw.sockets ?? [],
     data: raw.data,
+    fieldSizes: raw.fieldSizes ?? {},
   }
 }
 
@@ -407,4 +411,3 @@ export function downloadText(filename: string, text: string) {
   a.click()
   URL.revokeObjectURL(url)
 }
-
