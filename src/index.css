@@ -1,12 +1,14 @@
-/* Upload Labs node shape + ComfyUI curve wires */
-@import url("https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+/* Upload Labs node shape + ComfyUI curve wires — Figma Inter + accent borders */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
   --bg-deep: #0b1220;
   --text: #e8eef8;
   --text-dim: #9aadc8;
-  --accent: #3ec7ff;
+  /* Figma primary blue */
+  --accent: #0d99ff;
+  --accent-soft: rgba(13, 153, 255, 0.18);
   --grid-line: rgba(140, 175, 220, 0.07);
   --titlebar-h: 36px;
   --statusbar-h: 26px;
@@ -22,8 +24,10 @@ html, body, #root {
   overflow: hidden;
   background: var(--bg-deep);
   color: var(--text);
-  font-family: "Exo 2", "IBM Plex Sans", "Segoe UI", "PingFang SC", sans-serif;
+  /* Figma UI typeface */
+  font-family: Inter, "Segoe UI", "PingFang SC", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
 }
 
 button, input, textarea { font: inherit; color: inherit; }
@@ -72,8 +76,8 @@ button { cursor: pointer; }
   width: 12px;
   height: 12px;
   border-radius: 2px;
-  background: linear-gradient(135deg, #3ec7ff, #ff9a3c);
-  box-shadow: 0 0 10px rgba(62, 199, 255, 0.45);
+  background: linear-gradient(135deg, #0d99ff, #9747ff);
+  box-shadow: 0 0 10px rgba(13, 153, 255, 0.45);
 }
 .window-controls {
   display: flex;
@@ -107,7 +111,7 @@ button { cursor: pointer; }
 }
 
 .tool-btn.primary {
-  border-color: rgba(62, 199, 255, 0.45);
+  border-color: rgba(13, 153, 255, 0.55);
   background: rgba(30, 70, 100, 0.55);
 }
 
@@ -241,14 +245,14 @@ button { cursor: pointer; }
 }
 
 .dock-btn:hover {
-  background: rgba(62, 199, 255, 0.12);
+  background: rgba(13, 153, 255, 0.12);
   color: #fff;
 }
 
 .dock-btn.active {
-  background: rgba(62, 199, 255, 0.22);
+  background: rgba(13, 153, 255, 0.22);
   color: #fff;
-  box-shadow: inset 0 0 0 1px rgba(62, 199, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(13, 153, 255, 0.35);
 }
 
 .dock-sep-push {
@@ -283,7 +287,7 @@ button { cursor: pointer; }
 }
 
 .color-swatch.active {
-  box-shadow: 0 0 0 2px rgba(62, 199, 255, 0.65);
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.65);
 }
 
 .dock-btn-ghost {
@@ -350,8 +354,8 @@ button { cursor: pointer; }
 .marquee-rect {
   position: absolute;
   z-index: 4;
-  border: 1px dashed rgba(62, 199, 255, 0.75);
-  background: rgba(62, 199, 255, 0.12);
+  border: 1px dashed rgba(13, 153, 255, 0.75);
+  background: rgba(13, 153, 255, 0.12);
   pointer-events: none;
 }
 
@@ -366,8 +370,8 @@ button { cursor: pointer; }
 }
 
 .group-frame.selected {
-  border-color: rgba(62, 199, 255, 0.55);
-  box-shadow: 0 0 0 1px rgba(62, 199, 255, 0.22);
+  border-color: rgba(13, 153, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(13, 153, 255, 0.22);
 }
 
 .group-titlebar {
@@ -403,14 +407,14 @@ button { cursor: pointer; }
 .group-frame.selected .group-titlebar {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 0 0 1px rgba(62, 199, 255, 0.35);
+    0 0 0 1px rgba(13, 153, 255, 0.35);
 }
 
 .group-handle {
   position: absolute;
   width: 8px;
   height: 8px;
-  background: rgba(62, 199, 255, 0.85);
+  background: rgba(13, 153, 255, 0.85);
   border: 1px solid rgba(8, 14, 24, 0.9);
   border-radius: 1px;
   z-index: 2;
@@ -457,13 +461,13 @@ button { cursor: pointer; }
   filter: none;
 }
 
-/* Upload Labs module card */
+/* Upload Labs module card — Figma-style typed accent borders */
 .node {
   position: absolute;
   z-index: 3;
   min-height: 110px;
   background: rgba(16, 24, 40, 0.96);
-  border: 1px solid rgba(170, 190, 220, 0.28);
+  border: 1px solid color-mix(in srgb, var(--node-accent, #aabec0) 55%, transparent);
   border-radius: 4px;
   box-shadow:
     0 6px 18px rgba(0, 0, 0, 0.4),
@@ -476,10 +480,10 @@ button { cursor: pointer; }
   isolation: isolate;
 }
 .node.selected {
-  border-color: rgba(62, 199, 255, 0.6);
+  border-color: color-mix(in srgb, var(--node-accent, var(--accent)) 75%, transparent);
   box-shadow:
-    0 0 0 1px rgba(62, 199, 255, 0.28),
-    0 0 16px rgba(62, 199, 255, 0.12),
+    0 0 0 1px color-mix(in srgb, var(--node-accent, var(--accent)) 28%, transparent),
+    0 0 12px color-mix(in srgb, var(--node-accent, var(--accent)) 16%, transparent),
     0 8px 22px rgba(0, 0, 0, 0.45);
 }
 
@@ -538,13 +542,13 @@ button { cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 3px;
+  /* Allow fields to grow wider than the node while resizing */
+  max-width: none;
+  width: max-content;
+  min-width: 100%;
 }
 .ul-row-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-dim);
+  display: none; /* decorative title labels removed — inputs keep placeholders */
 }
 .ul-row-label .glyph {
   width: 12px;
@@ -558,6 +562,8 @@ button { cursor: pointer; }
   border-radius: 1px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
+  width: 100%;
+  min-width: 100%;
 }
 .ul-bar > span {
   display: block;
@@ -581,7 +587,7 @@ button { cursor: pointer; }
 .node textarea {
   width: 100%;
   max-width: none;
-  min-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   background: rgba(6, 12, 22, 0.72);
   border: 1px solid rgba(140, 170, 210, 0.22);
@@ -595,7 +601,10 @@ button { cursor: pointer; }
 }
 
 .ul-row,
-.list-item-row,
+.list-item-row {
+  /* Do not clamp to node width — horizontal textarea resize must overflow then grow the card */
+  max-width: none;
+}
 .date-grid,
 .socket-section {
   min-width: 0;
@@ -603,7 +612,7 @@ button { cursor: pointer; }
 }
 .node input:focus,
 .node textarea:focus {
-  border-color: rgba(62, 199, 255, 0.45);
+  border-color: rgba(13, 153, 255, 0.55);
 }
 .node textarea {
   resize: both;
@@ -621,8 +630,7 @@ button { cursor: pointer; }
 }
 .node textarea.md-editor {
   min-height: 120px;
-  /* Match other node fields — monospace + sub-pixel size looked soft on the canvas */
-  font-family: inherit;
+  font-family: Inter, "Segoe UI", "PingFang SC", sans-serif;
   font-size: 12px;
   line-height: 1.45;
   letter-spacing: 0;
@@ -675,7 +683,7 @@ button { cursor: pointer; }
   padding-left: 1.25em;
 }
 .md-preview code {
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: Inter, "Segoe UI", "PingFang SC", sans-serif;
   font-size: 0.92em;
   background: rgba(255, 255, 255, 0.08);
   padding: 0.1em 0.35em;
@@ -702,8 +710,8 @@ button { cursor: pointer; }
 }
 
 .mini-btn.active {
-  border-color: rgba(62, 199, 255, 0.5);
-  background: rgba(62, 199, 255, 0.16);
+  border-color: rgba(13, 153, 255, 0.5);
+  background: rgba(13, 153, 255, 0.16);
   color: #e8f6ff;
 }
 
@@ -1062,7 +1070,6 @@ button { cursor: pointer; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
-  margin-bottom: 4px;
 }
 
 .workspace-item {
@@ -1080,12 +1087,12 @@ button { cursor: pointer; }
 }
 
 .workspace-item:hover {
-  background: rgba(62, 199, 255, 0.1);
+  background: rgba(13, 153, 255, 0.1);
 }
 
 .workspace-item.active {
-  background: rgba(62, 199, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(62, 199, 255, 0.3);
+  background: rgba(13, 153, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(13, 153, 255, 0.3);
 }
 
 .workspace-item small {
@@ -1149,7 +1156,23 @@ button { cursor: pointer; }
 }
 
 .canvas-context-item:hover {
-  background: rgba(62, 199, 255, 0.14);
+  background: rgba(13, 153, 255, 0.14);
+}
+
+.canvas-context-item.danger {
+  color: #ff7262;
+}
+
+.canvas-context-item.danger:hover {
+  background: rgba(255, 114, 98, 0.14);
+}
+
+.canvas-context-item.danger {
+  color: #ff7262;
+}
+
+.canvas-context-item.danger:hover {
+  background: rgba(255, 114, 98, 0.14);
 }
 
 
@@ -1210,12 +1233,12 @@ button { cursor: pointer; }
 }
 
 .settings-nav-item:hover {
-  background: rgba(62, 199, 255, 0.1);
+  background: rgba(13, 153, 255, 0.1);
 }
 
 .settings-nav-item.active {
-  background: rgba(62, 199, 255, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(62, 199, 255, 0.3);
+  background: rgba(13, 153, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(13, 153, 255, 0.3);
   color: #fff;
 }
 
@@ -1261,8 +1284,8 @@ button { cursor: pointer; }
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #eaf6ff;
-  background: linear-gradient(145deg, rgba(62, 199, 255, 0.45), rgba(30, 80, 140, 0.55));
-  border: 1px solid rgba(62, 199, 255, 0.35);
+  background: linear-gradient(145deg, rgba(13, 153, 255, 0.45), rgba(30, 80, 140, 0.55));
+  border: 1px solid rgba(13, 153, 255, 0.35);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
