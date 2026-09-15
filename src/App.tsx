@@ -136,6 +136,7 @@ export default function App() {
             moveGroupWithMembers={store.moveGroupWithMembers}
             resizeNode={store.resizeNode}
             deleteNodes={store.deleteNodes}
+            duplicateNodes={store.duplicateNodes}
             addSocket={store.addSocket}
             renameSocket={store.renameSocket}
             removeSocket={store.removeSocket}
