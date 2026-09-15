@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { marked } from 'marked'
 import type {
@@ -9,7 +9,7 @@ import type {
   NoteData,
   Socket,
 } from '../types'
-import { NODE_KIND_LABEL, SOCKET_COLORS } from '../types'
+import { MARKDOWN_ACCENT, NODE_KIND_LABEL, SOCKET_COLORS } from '../types'
 import { kindsCompatible } from '../store'
 import { extractMarkdownH1 } from '../utils/markdown'
 import { SocketPort } from './SocketPort'
@@ -27,7 +27,9 @@ type NodeCardProps = {
   /** All canvas nodes — used to resolve multi-drag start positions */
   allNodes?: CanvasNode[]
   onUpdateData: (id: string, data: CanvasNode['data']) => void
+  onPatchNode: (id: string, patch: Partial<CanvasNode>) => void
   onHeight?: (id: string, height: number) => void
+  onNodeContextMenu?: (id: string, clientX: number, clientY: number) => void
   onSocketPointerDown: (e: ReactPointerEvent, nodeId: string, socket: Socket) => void
   onSocketEnter: (nodeId: string, socket: Socket) => void
   onSocketLeave: () => void
@@ -63,24 +65,24 @@ function NoteFields({
   onChange,
   accent,
   onFieldFocus,
+  fieldSizes,
 }: {
   data: NoteData
   onChange: (data: NoteData) => void
   accent: string
   onFieldFocus?: () => void
+  fieldSizes?: Record<string, { width: number; height: number }>
 }) {
   return (
     <>
       <div className="ul-row">
-        <div className="ul-row-label">
-          <span className="glyph" />
-          标题
-        </div>
         <textarea
           className="field-single"
+          data-field-key="title"
           rows={1}
           value={data.title}
           placeholder="标题"
+          style={fieldStyle(fieldSizes?.title)}
           onChange={(e) => onChange({ ...data, title: e.target.value })}
           onPointerDown={fieldPointerDown}
           onKeyDown={fieldSingleKeyDown}
@@ -88,22 +90,15 @@ function NoteFields({
           onFocus={onFieldFocus}
         />
         <div className="ul-bar">
-          <span
-            style={{
-              width: `${Math.min(100, Math.max(12, data.title.length * 8))}%`,
-              background: accent,
-            }}
-          />
+          <span style={{ width: '100%', background: accent }} />
         </div>
       </div>
       <div className="ul-row">
-        <div className="ul-row-label">
-          <span className="glyph" />
-          记事内容
-        </div>
         <textarea
+          data-field-key="body"
           value={data.body}
           placeholder="记事内容…"
+          style={fieldStyle(fieldSizes?.body)}
           onChange={(e) => onChange({ ...data, body: e.target.value })}
           onPointerDown={fieldPointerDown}
           onMouseDown={fieldMouseDown}
@@ -119,24 +114,24 @@ function DateFields({
   onChange,
   accent,
   onFieldFocus,
+  fieldSizes,
 }: {
   data: DateData
   onChange: (data: DateData) => void
   accent: string
   onFieldFocus?: () => void
+  fieldSizes?: Record<string, { width: number; height: number }>
 }) {
   return (
     <>
       <div className="ul-row">
-        <div className="ul-row-label">
-          <span className="glyph" />
-          日程名称
-        </div>
         <textarea
           className="field-single"
+          data-field-key="label"
           rows={1}
           value={data.label}
           placeholder="日程名称"
+          style={fieldStyle(fieldSizes?.label)}
           onChange={(e) => onChange({ ...data, label: e.target.value })}
           onPointerDown={fieldPointerDown}
           onKeyDown={fieldSingleKeyDown}
@@ -144,7 +139,7 @@ function DateFields({
           onFocus={onFieldFocus}
         />
         <div className="ul-bar">
-          <span style={{ width: '62%', background: accent }} />
+          <span style={{ width: '100%', background: accent }} />
         </div>
       </div>
       <div className="date-grid">
@@ -180,26 +175,24 @@ function ListFields({
   onChange,
   accent,
   onFieldFocus,
+  fieldSizes,
 }: {
   data: ListData
   onChange: (data: ListData) => void
   accent: string
   onFieldFocus?: () => void
+  fieldSizes?: Record<string, { width: number; height: number }>
 }) {
-  const filled = data.items.filter((i) => i.trim()).length
-  const ratio = Math.max(8, Math.round((filled / Math.max(data.items.length, 1)) * 100))
   return (
     <>
       <div className="ul-row">
-        <div className="ul-row-label">
-          <span className="glyph" />
-          列表标题
-        </div>
         <textarea
           className="field-single"
+          data-field-key="title"
           rows={1}
           value={data.title}
           placeholder="列表标题"
+          style={fieldStyle(fieldSizes?.title)}
           onChange={(e) => onChange({ ...data, title: e.target.value })}
           onPointerDown={fieldPointerDown}
           onKeyDown={fieldSingleKeyDown}
@@ -207,16 +200,18 @@ function ListFields({
           onFocus={onFieldFocus}
         />
         <div className="ul-bar">
-          <span style={{ width: `${ratio}%`, background: accent }} />
+          <span style={{ width: '100%', background: accent }} />
         </div>
       </div>
       {data.items.map((item, index) => (
         <div className="list-item-row" key={index}>
           <textarea
             className="field-single"
+            data-field-key={`item-${index}`}
             rows={1}
             value={item}
             placeholder={`条目 ${index + 1}`}
+            style={fieldStyle(fieldSizes?.[`item-${index}`])}
             onChange={(e) => {
               const items = [...data.items]
               items[index] = e.target.value
@@ -259,12 +254,14 @@ function MarkdownFields({
   onChange,
   accent,
   onFieldFocus,
+  fieldSizes,
 }: {
   nodeId: string
   data: MarkdownData
   onChange: (data: MarkdownData) => void
   accent: string
   onFieldFocus?: () => void
+  fieldSizes?: Record<string, { width: number; height: number }>
 }) {
   const [mode, setMode] = useState<'edit' | 'preview'>(
     () => markdownModeByNodeId.get(nodeId) ?? 'edit',
@@ -320,24 +317,17 @@ function MarkdownFields({
           预览
         </button>
         <div className="ul-bar md-bar">
-          <span
-            style={{
-              width: `${Math.min(100, Math.max(10, data.content.length / 4))}%`,
-              background: accent,
-            }}
-          />
+          <span style={{ width: '100%', background: accent }} />
         </div>
       </div>
       {mode === 'edit' ? (
         <div className="ul-row">
-          <div className="ul-row-label">
-            <span className="glyph" />
-            Markdown 正文（首个 # 标题 → 组件标题）
-          </div>
           <textarea
             className="md-editor"
+            data-field-key="content"
             value={data.content}
             placeholder={'# 标题\n\n正文…'}
+            style={fieldStyle(fieldSizes?.content)}
             onChange={(e) => {
               const content = e.target.value
               const h1 = extractMarkdownH1(content)
@@ -365,6 +355,15 @@ function MarkdownFields({
   )
 }
 
+function fieldStyle(size?: { width: number; height: number }) {
+  if (!size) return undefined
+  return {
+    width: size.width,
+    height: size.height,
+    maxWidth: 'none',
+  } as const
+}
+
 export function getSocketWorldPos(
   node: CanvasNode,
   socket: Socket,
@@ -387,7 +386,9 @@ export function NodeCard({
   onMoveMany,
   allNodes = [],
   onUpdateData,
+  onPatchNode,
   onHeight,
+  onNodeContextMenu,
   onSocketPointerDown,
   onSocketEnter,
   onSocketLeave,
@@ -398,6 +399,74 @@ export function NodeCard({
   const rootRef = useRef<HTMLDivElement>(null)
   const socketAreaRef = useRef<HTMLDivElement>(null)
   const [height, setHeight] = useState(160)
+  const fieldSizes = node.fieldSizes ?? {}
+  const sizesRef = useRef(fieldSizes)
+  sizesRef.current = fieldSizes
+
+  // Grow node when native textarea resize handles change field size; persist fieldSizes + width.
+  useEffect(() => {
+    if (node.kind === 'group') return
+    const root = rootRef.current
+    if (!root) return
+    let timer: number | undefined
+    const flush = (
+      sizes: Record<string, { width: number; height: number }>,
+      nextWidth: number,
+      nextHeight: number,
+    ) => {
+      const patch: Partial<CanvasNode> = { fieldSizes: sizes }
+      if (Math.abs(nextWidth - node.width) >= 1) patch.width = nextWidth
+      if (Math.abs(nextHeight - node.height) >= 1) patch.height = nextHeight
+      onPatchNode(node.id, patch)
+    }
+    const measure = () => {
+      const areas = root.querySelectorAll<HTMLTextAreaElement>('textarea[data-field-key]')
+      if (!areas.length) return
+      const nextSizes: Record<string, { width: number; height: number }> = {
+        ...sizesRef.current,
+      }
+      let changed = false
+      let maxFieldRight = 0
+      const bodyPad = 20 // .node-body horizontal padding
+      areas.forEach((el) => {
+        const key = el.dataset.fieldKey
+        if (!key) return
+        // Prefer inline resize size, then layout box
+        const inlineW = Number.parseFloat(el.style.width)
+        const inlineH = Number.parseFloat(el.style.height)
+        const width = Math.round(
+          Number.isFinite(inlineW) && inlineW > 0 ? inlineW : el.offsetWidth,
+        )
+        const height = Math.round(
+          Number.isFinite(inlineH) && inlineH > 0 ? inlineH : el.offsetHeight,
+        )
+        const prev = nextSizes[key]
+        if (!prev || prev.width !== width || prev.height !== height) {
+          nextSizes[key] = { width, height }
+          changed = true
+        }
+        maxFieldRight = Math.max(maxFieldRight, width)
+      })
+      const neededWidth = Math.max(node.width, maxFieldRight + bodyPad + 8)
+      const neededHeight = Math.max(node.height, Math.round(root.offsetHeight))
+      if (!changed && neededWidth === node.width && neededHeight === node.height) return
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => flush(nextSizes, neededWidth, neededHeight), 60)
+    }
+    const ro = new ResizeObserver(measure)
+    const observeFields = () => {
+      root.querySelectorAll('textarea[data-field-key]').forEach((el) => ro.observe(el))
+    }
+    observeFields()
+    // Re-attach when list items / markdown mode swap the DOM
+    const mo = new MutationObserver(observeFields)
+    mo.observe(root, { childList: true, subtree: true })
+    return () => {
+      window.clearTimeout(timer)
+      ro.disconnect()
+      mo.disconnect()
+    }
+  }, [node.id, node.kind, node.width, node.height, node.data, onPatchNode])
 
   const accent =
     node.kind === 'note'
@@ -405,7 +474,7 @@ export function NodeCard({
       : node.kind === 'date'
         ? SOCKET_COLORS.date
         : node.kind === 'markdown'
-          ? '#c4a5ff'
+          ? MARKDOWN_ACCENT
           : SOCKET_COLORS.info
 
   const iconGlyph =
@@ -430,6 +499,9 @@ export function NodeCard({
       const h = el.offsetHeight
       setHeight((prev) => (prev === h ? prev : h))
       onHeight?.(node.id, h)
+      if (Math.abs(h - node.height) >= 2) {
+        onPatchNode(node.id, { height: h })
+      }
       const rootRect = el.getBoundingClientRect()
       const next: Record<string, number> = {}
       el.querySelectorAll<HTMLElement>('[data-socket-id].socket-dot').forEach((dot) => {
@@ -461,6 +533,14 @@ export function NodeCard({
         left: node.x,
         top: node.y,
         width: node.width,
+        // Figma-style typed border: note=orange, date=blue, list=green, md=purple
+        ['--node-accent' as string]: accent,
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onSelect(node.id, e.shiftKey)
+        onNodeContextMenu?.(node.id, e.clientX, e.clientY)
       }}
       onPointerDown={(e) => {
         if ((e.target as HTMLElement).closest('.socket-dot')) return
@@ -544,6 +624,7 @@ export function NodeCard({
           <NoteFields
             data={node.data as NoteData}
             accent={accent}
+            fieldSizes={fieldSizes}
             onChange={(data) => onUpdateData(node.id, data)}
             onFieldFocus={() => {
               if (!selected) queueMicrotask(() => onSelect(node.id, false))
@@ -554,6 +635,7 @@ export function NodeCard({
           <DateFields
             data={node.data as DateData}
             accent={accent}
+            fieldSizes={fieldSizes}
             onChange={(data) => onUpdateData(node.id, data)}
             onFieldFocus={() => {
               if (!selected) queueMicrotask(() => onSelect(node.id, false))
@@ -564,6 +646,7 @@ export function NodeCard({
           <ListFields
             data={node.data as ListData}
             accent={accent}
+            fieldSizes={fieldSizes}
             onChange={(data) => onUpdateData(node.id, data)}
             onFieldFocus={() => {
               if (!selected) queueMicrotask(() => onSelect(node.id, false))
@@ -575,6 +658,7 @@ export function NodeCard({
             nodeId={node.id}
             data={node.data as MarkdownData}
             accent={accent}
+            fieldSizes={fieldSizes}
             onChange={(data) => onUpdateData(node.id, data)}
             onFieldFocus={() => {
               if (!selected) queueMicrotask(() => onSelect(node.id, false))
