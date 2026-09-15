@@ -36,6 +36,7 @@ type CanvasBoardProps = {
   ) => void
   resizeNode: (id: string, x: number, y: number, width: number, height: number) => void
   deleteNodes: (ids: string[]) => void
+  duplicateNodes: (ids: string[]) => void
   addSocket: (nodeId: string, side: SocketSide, kind: SocketKind, name: string) => void
   renameSocket: (nodeId: string, socketId: string, name: string) => void
   removeSocket: (nodeId: string, socketId: string) => void
@@ -79,12 +80,14 @@ export function CanvasBoard({
   onToolModeChange,
   setViewport,
   addNode,
+  updateNode,
   updateNodeData,
   moveNode,
   moveNodes,
   moveGroupWithMembers,
   resizeNode,
   deleteNodes,
+  duplicateNodes,
   addSocket,
   renameSocket,
   removeSocket,
@@ -107,6 +110,8 @@ export function CanvasBoard({
     y: number
     worldX: number
     worldY: number
+    type: 'canvas' | 'node'
+    nodeId?: string
   } | null>(null)
   viewportRef.current = state.viewport
   const nodesRef = useRef(state.nodes)
@@ -381,6 +386,21 @@ export function CanvasBoard({
       y: e.clientY - rect.top,
       worldX: world.x,
       worldY: world.y,
+      type: 'canvas',
+    })
+  }
+
+  const openNodeContextMenu = (nodeId: string, clientX: number, clientY: number) => {
+    const root = rootRef.current
+    if (!root) return
+    const rect = root.getBoundingClientRect()
+    setContextMenu({
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      worldX: 0,
+      worldY: 0,
+      type: 'node',
+      nodeId,
     })
   }
 
@@ -545,6 +565,8 @@ export function CanvasBoard({
             onMove={moveNode}
             onMoveMany={moveNodes}
             onUpdateData={updateNodeData}
+            onPatchNode={updateNode}
+            onNodeContextMenu={openNodeContextMenu}
             onSocketPointerDown={handleSocketPointerDown}
             onSocketEnter={(nodeId, socket) => setHoverTarget({ nodeId, socket })}
             onSocketLeave={() => setHoverTarget(null)}
@@ -630,30 +652,113 @@ export function CanvasBoard({
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div className="canvas-context-menu-title">新建控件</div>
-          {(
-            [
-              ['note', '便签'],
-              ['date', '日期'],
-              ['list', '清单'],
-              ['markdown', 'Markdown'],
-              ['group', '分组'],
-            ] as const
-          ).map(([kind, label]) => (
-            <button
-              key={kind}
-              type="button"
-              className="canvas-context-item"
-              onClick={() => {
-                const ox = kind === 'group' ? 180 : 120
-                const oy = kind === 'group' ? 120 : 40
-                addNode(kind, contextMenu.worldX - ox, contextMenu.worldY - oy)
-                setContextMenu(null)
-              }}
-            >
-              {label}
-            </button>
-          ))}
+          {contextMenu.type === 'canvas' ? (
+            <>
+              <div className="canvas-context-menu-title">新建控件</div>
+              {(
+                [
+                  ['note', '便签'],
+                  ['date', '日期'],
+                  ['list', '清单'],
+                  ['markdown', 'Markdown'],
+                  ['group', '分组'],
+                ] as const
+              ).map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  className="canvas-context-item"
+                  onClick={() => {
+                    const ox = kind === 'group' ? 180 : 120
+                    const oy = kind === 'group' ? 120 : 40
+                    addNode(kind, contextMenu.worldX - ox, contextMenu.worldY - oy)
+                    setContextMenu(null)
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <div className="canvas-context-menu-title">控件操作</div>
+              <button
+                type="button"
+                className="canvas-context-item"
+                onClick={() => {
+                  if (contextMenu.nodeId) {
+                    onSelectionChange([contextMenu.nodeId])
+                    onHandleNodeIdChange(contextMenu.nodeId)
+                  }
+                  setContextMenu(null)
+                }}
+              >
+                节点管理
+              </button>
+              <button
+                type="button"
+                className="canvas-context-item"
+                onClick={() => {
+                  if (!contextMenu.nodeId) return
+                  const n = state.nodes.find((x) => x.id === contextMenu.nodeId)
+                  const kind: SocketKind = n?.kind === 'date' ? 'date' : 'generic'
+                  addSocket(contextMenu.nodeId, 'left', kind, '输入')
+                  setContextMenu(null)
+                }}
+              >
+                左侧添加连接点
+              </button>
+              <button
+                type="button"
+                className="canvas-context-item"
+                onClick={() => {
+                  if (!contextMenu.nodeId) return
+                  const n = state.nodes.find((x) => x.id === contextMenu.nodeId)
+                  const kind: SocketKind = n?.kind === 'date' ? 'date' : 'generic'
+                  addSocket(contextMenu.nodeId, 'right', kind, '输出')
+                  setContextMenu(null)
+                }}
+              >
+                右侧添加连接点
+              </button>
+              <button
+                type="button"
+                className="canvas-context-item"
+                onClick={() => {
+                  if (!contextMenu.nodeId) return
+                  setSocketDialog({ nodeId: contextMenu.nodeId, side: 'right' })
+                  setContextMenu(null)
+                }}
+              >
+                自定义连接点…
+              </button>
+              <button
+                type="button"
+                className="canvas-context-item"
+                onClick={() => {
+                  if (!contextMenu.nodeId) return
+                  duplicateNodes([contextMenu.nodeId])
+                  setContextMenu(null)
+                }}
+              >
+                复制控件
+              </button>
+              <button
+                type="button"
+                className="canvas-context-item danger"
+                onClick={() => {
+                  if (contextMenu.nodeId) {
+                    deleteNodes([contextMenu.nodeId])
+                    onSelectionChange([])
+                    onHandleNodeIdChange(null)
+                  }
+                  setContextMenu(null)
+                }}
+              >
+                删除控件
+              </button>
+            </>
+          )}
         </div>
       )}
 
