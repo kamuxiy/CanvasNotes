@@ -39,7 +39,6 @@ type CanvasBoardProps = {
   duplicateNodes: (ids: string[]) => void
   addSocket: (nodeId: string, side: SocketSide, kind: SocketKind, name: string) => void
   renameSocket: (nodeId: string, socketId: string, name: string) => void
-  removeSocket: (nodeId: string, socketId: string) => void
   tryConnect: (
     aNodeId: string,
     aSocketId: string,
@@ -56,6 +55,7 @@ type CanvasBoardProps = {
   onHandleNodeIdChange: (id: string | null) => void
   socketDialogRequest: { nodeId: string; side: SocketSide } | null
   onSocketDialogHandled: () => void
+  onOpenSocketManager?: (nodeId: string) => void
 }
 
 type WireDraft = {
@@ -90,7 +90,6 @@ export function CanvasBoard({
   duplicateNodes,
   addSocket,
   renameSocket,
-  removeSocket,
   tryConnect,
   deleteConnection,
   pendingAddKind,
@@ -102,6 +101,7 @@ export function CanvasBoard({
   onHandleNodeIdChange,
   socketDialogRequest,
   onSocketDialogHandled,
+  onOpenSocketManager,
 }: CanvasBoardProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef(state.viewport)
@@ -145,6 +145,18 @@ export function CanvasBoard({
     setSocketDialog(socketDialogRequest)
     onSocketDialogHandled()
   }, [socketDialogRequest, onSocketDialogHandled])
+
+  // Dismiss context menu when clicking anywhere outside it (including nodes).
+  useEffect(() => {
+    if (!contextMenu) return
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement
+      if (t.closest('.canvas-context-menu')) return
+      setContextMenu(null)
+    }
+    window.addEventListener('pointerdown', onPointerDown, true)
+    return () => window.removeEventListener('pointerdown', onPointerDown, true)
+  }, [contextMenu])
 
   const handleSocketOffsets = useCallback(
     (nodeId: string, offsets: Record<string, number>) => {
@@ -571,7 +583,6 @@ export function CanvasBoard({
             onSocketEnter={(nodeId, socket) => setHoverTarget({ nodeId, socket })}
             onSocketLeave={() => setHoverTarget(null)}
             onRenameSocket={renameSocket}
-            onRemoveSocket={removeSocket}
             onSocketOffsets={handleSocketOffsets}
           />
         ))}
@@ -685,11 +696,14 @@ export function CanvasBoard({
               <button
                 type="button"
                 className="canvas-context-item"
-                onClick={() => {
-                  if (contextMenu.nodeId) {
-                    onSelectionChange([contextMenu.nodeId])
-                    onHandleNodeIdChange(contextMenu.nodeId)
-                  }
+                data-testid="context-socket-manager"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (!contextMenu.nodeId) return
+                  const id = contextMenu.nodeId
+                  onSelectionChange([id])
+                  onOpenSocketManager?.(id)
                   setContextMenu(null)
                 }}
               >
