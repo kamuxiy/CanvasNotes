@@ -22,7 +22,7 @@ export default function App() {
   const [pendingAddKind, setPendingAddKind] = useState<NodeKind | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [handleNodeId, setHandleNodeId] = useState<string | null>(null)
-  const [socketManagerOpen, setSocketManagerOpen] = useState(false)
+  const [socketManagerNodeId, setSocketManagerNodeId] = useState<string | null>(null)
   const [socketDialogRequest, setSocketDialogRequest] = useState<{
     nodeId: string
     side: SocketSide
@@ -89,30 +89,37 @@ export default function App() {
       minX = Math.min(minX, n.x)
       minY = Math.min(minY, n.y)
       maxX = Math.max(maxX, n.x + n.width)
-      maxY = Math.max(maxY, n.y + (n.kind === 'group' ? n.height : 180))
+      maxY = Math.max(maxY, n.y + Math.max(n.height, 120))
     }
-    const pad = 80
+    // Keep content clear of the floating bottom dock (~56px bar + 16px inset + margin).
+    const padX = 64
+    const padTop = 48
+    const padBottom = 120
     const contentW = Math.max(maxX - minX, 1)
     const contentH = Math.max(maxY - minY, 1)
+    const availableW = Math.max(rect.width - padX * 2, 1)
+    const availableH = Math.max(rect.height - padTop - padBottom, 1)
     const zoom = Math.min(
       1.4,
-      Math.max(
-        0.4,
-        Math.min(
-          (rect.width - pad * 2) / contentW,
-          (rect.height - pad * 2) / contentH,
-        ),
-      ),
+      Math.max(0.35, Math.min(availableW / contentW, availableH / contentH)),
     )
     const x = (rect.width - contentW * zoom) / 2 - minX * zoom
-    const y = (rect.height - contentH * zoom) / 2 - minY * zoom
+    const y = padTop + (availableH - contentH * zoom) / 2 - minY * zoom
     store.setViewport({ x, y, zoom })
   }, [store])
 
-  const socketManagerNode =
-    socketManagerOpen && singleNonGroupSelected && singleSelectedNode
-      ? singleSelectedNode
-      : null
+  const socketManagerNode = useMemo(() => {
+    if (!socketManagerNodeId) return null
+    const n = store.state.nodes.find((x) => x.id === socketManagerNodeId)
+    return n && n.kind !== 'group' ? n : null
+  }, [socketManagerNodeId, store.state.nodes])
+
+  // Drop the panel if its node was deleted.
+  useEffect(() => {
+    if (socketManagerNodeId && !socketManagerNode) {
+      setSocketManagerNodeId(null)
+    }
+  }, [socketManagerNodeId, socketManagerNode])
 
   return (
     <div className="app-root">
@@ -139,7 +146,6 @@ export default function App() {
             duplicateNodes={store.duplicateNodes}
             addSocket={store.addSocket}
             renameSocket={store.renameSocket}
-            removeSocket={store.removeSocket}
             tryConnect={store.tryConnect}
             deleteConnection={store.deleteConnection}
             pendingAddKind={pendingAddKind}
@@ -151,6 +157,11 @@ export default function App() {
             onClearHandles={() => setHandleNodeId(null)}
             socketDialogRequest={socketDialogRequest}
             onSocketDialogHandled={() => setSocketDialogRequest(null)}
+            onOpenSocketManager={(nodeId) => {
+              setSelectedIds([nodeId])
+              setHandleNodeId(null)
+              setSocketManagerNodeId(nodeId)
+            }}
           />
           <BottomDock
             toolMode={toolMode}
@@ -168,7 +179,7 @@ export default function App() {
               store.deleteNodes(selectedIds)
               setSelectedIds([])
               setHandleNodeId(null)
-              setSocketManagerOpen(false)
+              setSocketManagerNodeId(null)
             }}
             onDuplicate={() => {
               if (!selectedIds.length) return
@@ -184,7 +195,10 @@ export default function App() {
               if (!id) return
               setSocketDialogRequest({ nodeId: id, side: 'right' })
             }}
-            onOpenSocketManager={() => setSocketManagerOpen(true)}
+            onOpenSocketManager={() => {
+              const id = selectedIds[0]
+              if (id) setSocketManagerNodeId(id)
+            }}
             groupColor={groupColor}
             groupTitle={
               singleGroupSelected && singleSelectedNode
@@ -212,7 +226,7 @@ export default function App() {
                   store.hydrate(state)
                   setSelectedIds([])
                   setHandleNodeId(null)
-                  setSocketManagerOpen(false)
+                  setSocketManagerNodeId(null)
                 }}
               />
             }
@@ -222,7 +236,7 @@ export default function App() {
                 store.resetDemo()
                 setSelectedIds([])
                 setHandleNodeId(null)
-                setSocketManagerOpen(false)
+                setSocketManagerNodeId(null)
               }
             }}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -231,7 +245,7 @@ export default function App() {
                 store.clearCanvas()
                 setSelectedIds([])
                 setHandleNodeId(null)
-                setSocketManagerOpen(false)
+                setSocketManagerNodeId(null)
               }
             }}
           />
@@ -239,7 +253,7 @@ export default function App() {
           {socketManagerNode && (
             <SocketManagerPanel
               node={socketManagerNode}
-              onClose={() => setSocketManagerOpen(false)}
+              onClose={() => setSocketManagerNodeId(null)}
               onUpdateSocket={(socketId, patch) =>
                 store.updateSocket(socketManagerNode.id, socketId, patch)
               }

@@ -163,6 +163,18 @@ export function createDemoState(): AppState {
   }
 }
 
+function migrateFieldSizes(
+  raw?: Record<string, { width?: number; height?: number }>,
+): Record<string, { width: number }> {
+  if (!raw) return {}
+  const next: Record<string, { width: number }> = {}
+  for (const [key, size] of Object.entries(raw)) {
+    const width = Number(size?.width)
+    if (Number.isFinite(width) && width > 0) next[key] = { width }
+  }
+  return next
+}
+
 function migrateNode(raw: CanvasNode): CanvasNode {
   return {
     ...raw,
@@ -170,7 +182,8 @@ function migrateNode(raw: CanvasNode): CanvasNode {
     width: raw.width ?? (raw.kind === 'group' ? 360 : 240),
     sockets: raw.sockets ?? [],
     data: raw.data,
-    fieldSizes: raw.fieldSizes ?? {},
+    // Drop legacy height — field height is always content-auto now.
+    fieldSizes: migrateFieldSizes(raw.fieldSizes as Record<string, { width?: number; height?: number }> | undefined),
   }
 }
 
