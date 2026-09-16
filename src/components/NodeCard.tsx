@@ -34,7 +34,6 @@ type NodeCardProps = {
   onSocketEnter: (nodeId: string, socket: Socket) => void
   onSocketLeave: () => void
   onRenameSocket: (nodeId: string, socketId: string, name: string) => void
-  onRemoveSocket: (nodeId: string, socketId: string) => void
   onSocketOffsets: (nodeId: string, offsets: Record<string, number>) => void
 }
 
@@ -60,6 +59,25 @@ function fieldSingleKeyDown(e: ReactKeyboardEvent) {
   if (e.key === 'Enter') e.preventDefault()
 }
 
+/** Keep textarea tall enough to show all content (width is user-resizable). */
+function autoSizeTextarea(el: HTMLTextAreaElement) {
+  const min = el.classList.contains('md-editor')
+    ? 64
+    : el.classList.contains('field-single')
+      ? 28
+      : 48
+  el.style.height = 'auto'
+  el.style.height = `${Math.max(min, el.scrollHeight)}px`
+}
+
+function fieldStyle(size?: { width: number }) {
+  if (!size?.width) return undefined
+  return {
+    width: size.width,
+    maxWidth: 'none',
+  } as const
+}
+
 function NoteFields({
   data,
   onChange,
@@ -71,7 +89,7 @@ function NoteFields({
   onChange: (data: NoteData) => void
   accent: string
   onFieldFocus?: () => void
-  fieldSizes?: Record<string, { width: number; height: number }>
+  fieldSizes?: Record<string, { width: number }>
 }) {
   return (
     <>
@@ -83,7 +101,10 @@ function NoteFields({
           value={data.title}
           placeholder="标题"
           style={fieldStyle(fieldSizes?.title)}
-          onChange={(e) => onChange({ ...data, title: e.target.value })}
+          onChange={(e) => {
+            onChange({ ...data, title: e.target.value })
+            autoSizeTextarea(e.target)
+          }}
           onPointerDown={fieldPointerDown}
           onKeyDown={fieldSingleKeyDown}
           onMouseDown={fieldMouseDown}
@@ -99,7 +120,10 @@ function NoteFields({
           value={data.body}
           placeholder="记事内容…"
           style={fieldStyle(fieldSizes?.body)}
-          onChange={(e) => onChange({ ...data, body: e.target.value })}
+          onChange={(e) => {
+            onChange({ ...data, body: e.target.value })
+            autoSizeTextarea(e.target)
+          }}
           onPointerDown={fieldPointerDown}
           onMouseDown={fieldMouseDown}
           onFocus={onFieldFocus}
@@ -120,7 +144,7 @@ function DateFields({
   onChange: (data: DateData) => void
   accent: string
   onFieldFocus?: () => void
-  fieldSizes?: Record<string, { width: number; height: number }>
+  fieldSizes?: Record<string, { width: number }>
 }) {
   return (
     <>
@@ -132,7 +156,10 @@ function DateFields({
           value={data.label}
           placeholder="日程名称"
           style={fieldStyle(fieldSizes?.label)}
-          onChange={(e) => onChange({ ...data, label: e.target.value })}
+          onChange={(e) => {
+            onChange({ ...data, label: e.target.value })
+            autoSizeTextarea(e.target)
+          }}
           onPointerDown={fieldPointerDown}
           onKeyDown={fieldSingleKeyDown}
           onMouseDown={fieldMouseDown}
@@ -181,7 +208,7 @@ function ListFields({
   onChange: (data: ListData) => void
   accent: string
   onFieldFocus?: () => void
-  fieldSizes?: Record<string, { width: number; height: number }>
+  fieldSizes?: Record<string, { width: number }>
 }) {
   return (
     <>
@@ -193,7 +220,10 @@ function ListFields({
           value={data.title}
           placeholder="列表标题"
           style={fieldStyle(fieldSizes?.title)}
-          onChange={(e) => onChange({ ...data, title: e.target.value })}
+          onChange={(e) => {
+            onChange({ ...data, title: e.target.value })
+            autoSizeTextarea(e.target)
+          }}
           onPointerDown={fieldPointerDown}
           onKeyDown={fieldSingleKeyDown}
           onMouseDown={fieldMouseDown}
@@ -216,6 +246,7 @@ function ListFields({
               const items = [...data.items]
               items[index] = e.target.value
               onChange({ ...data, items })
+              autoSizeTextarea(e.target)
             }}
             onPointerDown={fieldPointerDown}
             onKeyDown={fieldSingleKeyDown}
@@ -261,7 +292,7 @@ function MarkdownFields({
   onChange: (data: MarkdownData) => void
   accent: string
   onFieldFocus?: () => void
-  fieldSizes?: Record<string, { width: number; height: number }>
+  fieldSizes?: Record<string, { width: number }>
 }) {
   const [mode, setMode] = useState<'edit' | 'preview'>(
     () => markdownModeByNodeId.get(nodeId) ?? 'edit',
@@ -335,6 +366,7 @@ function MarkdownFields({
                 content,
                 title: h1 ?? (data.title.trim() || 'Markdown'),
               })
+              autoSizeTextarea(e.target)
             }}
             onPointerDown={fieldPointerDown}
             onMouseDown={fieldMouseDown}
@@ -353,15 +385,6 @@ function MarkdownFields({
       )}
     </>
   )
-}
-
-function fieldStyle(size?: { width: number; height: number }) {
-  if (!size) return undefined
-  return {
-    width: size.width,
-    height: size.height,
-    maxWidth: 'none',
-  } as const
 }
 
 export function getSocketWorldPos(
@@ -393,7 +416,6 @@ export function NodeCard({
   onSocketEnter,
   onSocketLeave,
   onRenameSocket,
-  onRemoveSocket,
   onSocketOffsets,
 }: NodeCardProps) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -403,14 +425,14 @@ export function NodeCard({
   const sizesRef = useRef(fieldSizes)
   sizesRef.current = fieldSizes
 
-  // Grow node when native textarea resize handles change field size; persist fieldSizes + width.
+  // Persist user width tweaks; auto-size height to content; grow the node card with fields.
   useEffect(() => {
     if (node.kind === 'group') return
     const root = rootRef.current
     if (!root) return
     let timer: number | undefined
     const flush = (
-      sizes: Record<string, { width: number; height: number }>,
+      sizes: Record<string, { width: number }>,
       nextWidth: number,
       nextHeight: number,
     ) => {
@@ -422,28 +444,25 @@ export function NodeCard({
     const measure = () => {
       const areas = root.querySelectorAll<HTMLTextAreaElement>('textarea[data-field-key]')
       if (!areas.length) return
-      const nextSizes: Record<string, { width: number; height: number }> = {
-        ...sizesRef.current,
-      }
+      const nextSizes: Record<string, { width: number }> = { ...sizesRef.current }
       let changed = false
       let maxFieldRight = 0
-      const bodyPad = 20 // .node-body horizontal padding
+      const bodyPad = 20
       areas.forEach((el) => {
         const key = el.dataset.fieldKey
         if (!key) return
-        // Prefer inline resize size, then layout box
+        autoSizeTextarea(el)
         const inlineW = Number.parseFloat(el.style.width)
-        const inlineH = Number.parseFloat(el.style.height)
+        const hasUserWidth = Number.isFinite(inlineW) && inlineW > 0
         const width = Math.round(
-          Number.isFinite(inlineW) && inlineW > 0 ? inlineW : el.offsetWidth,
+          hasUserWidth ? inlineW : el.offsetWidth,
         )
-        const height = Math.round(
-          Number.isFinite(inlineH) && inlineH > 0 ? inlineH : el.offsetHeight,
-        )
-        const prev = nextSizes[key]
-        if (!prev || prev.width !== width || prev.height !== height) {
-          nextSizes[key] = { width, height }
-          changed = true
+        if (hasUserWidth) {
+          const prev = nextSizes[key]
+          if (!prev || prev.width !== width) {
+            nextSizes[key] = { width }
+            changed = true
+          }
         }
         maxFieldRight = Math.max(maxFieldRight, width)
       })
@@ -453,13 +472,17 @@ export function NodeCard({
       window.clearTimeout(timer)
       timer = window.setTimeout(() => flush(nextSizes, neededWidth, neededHeight), 60)
     }
+    // Initial content-fit pass
+    measure()
     const ro = new ResizeObserver(measure)
     const observeFields = () => {
       root.querySelectorAll('textarea[data-field-key]').forEach((el) => ro.observe(el))
     }
     observeFields()
-    // Re-attach when list items / markdown mode swap the DOM
-    const mo = new MutationObserver(observeFields)
+    const mo = new MutationObserver(() => {
+      observeFields()
+      measure()
+    })
     mo.observe(root, { childList: true, subtree: true })
     return () => {
       window.clearTimeout(timer)
@@ -467,6 +490,14 @@ export function NodeCard({
       mo.disconnect()
     }
   }, [node.id, node.kind, node.width, node.height, node.data, onPatchNode])
+
+  // Re-fit heights whenever content / width styles change (e.g. typing).
+  useLayoutEffect(() => {
+    if (node.kind === 'group') return
+    const root = rootRef.current
+    if (!root) return
+    root.querySelectorAll<HTMLTextAreaElement>('textarea[data-field-key]').forEach(autoSizeTextarea)
+  }, [node.id, node.kind, node.data, node.fieldSizes, node.width])
 
   const accent =
     node.kind === 'note'
@@ -683,11 +714,6 @@ export function NodeCard({
               const next = window.prompt('连接点名称', s.name)
               if (next != null && next.trim()) {
                 onRenameSocket(node.id, s.id, next.trim())
-              }
-            }}
-            onContextMenu={(_e, s) => {
-              if (window.confirm('删除该连接点？')) {
-                onRemoveSocket(node.id, s.id)
               }
             }}
           />
