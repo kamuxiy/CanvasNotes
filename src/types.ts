@@ -41,8 +41,8 @@ export interface GroupData {
 export type NodeData = NoteData | DateData | ListData | MarkdownData | GroupData
 
 export interface FieldSize {
+  /** User-adjusted field width; height is always content-auto. */
   width: number
-  height: number
 }
 
 export interface CanvasNode {

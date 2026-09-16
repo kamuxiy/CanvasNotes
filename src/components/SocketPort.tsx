@@ -33,11 +33,14 @@ export function SocketPort({
     <div
       className={`socket-row ${socket.side}${active ? ' active' : ''}`}
       style={style}
-      title={`${socket.name}（双击重命名 / 右键删除）`}
+      title={`${socket.name}（双击重命名）`}
       onContextMenu={(e) => {
         e.preventDefault()
-        e.stopPropagation()
-        onContextMenu?.(e, socket)
+        // Let the node ops menu handle right-click; only stop if a custom handler is provided.
+        if (onContextMenu) {
+          e.stopPropagation()
+          onContextMenu(e, socket)
+        }
       }}
     >
       <button
