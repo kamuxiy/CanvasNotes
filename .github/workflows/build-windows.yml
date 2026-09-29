@@ -11,9 +11,9 @@ on:
         type: boolean
         default: true
       tag_name:
-        description: 'Release 标签名'
+        description: 'Release 标签名（留空则使用 package.json 的 version，加 v 前缀）'
         type: string
-        default: 'v1.0.1'
+        default: ''
 
 permissions:
   contents: write
@@ -30,6 +30,25 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: Resolve release tag
+        id: meta
+        shell: bash
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT="${{ inputs.tag_name }}"
+            if [ -n "$INPUT" ]; then
+              TAG="$INPUT"
+            else
+              TAG="v${PKG_VERSION}"
+            fi
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "pkg_version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Resolved package.json=${PKG_VERSION} release_tag=${TAG}"
 
       - name: Install
         run: npm install
@@ -52,8 +71,8 @@ jobs:
           (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
-          name: 画布笔记 ${{ github.event_name == 'workflow_dispatch' && inputs.tag_name || github.ref_name }}
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: 画布笔记 ${{ steps.meta.outputs.tag_name }}
           files: release/*.exe
           generate_release_notes: true
           fail_on_unmatched_files: true

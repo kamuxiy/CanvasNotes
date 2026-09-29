@@ -112,7 +112,7 @@ npm run dist:win
 ## 环境依赖
 
 | 项目 | 要求 | 说明 |
-| :--- | :--- | :--- |
+| :--- | :--- |
 | 操作系统 | Windows 10 / 11（64 位） | 正式客户端目标平台 |
 | 运行方式 | 下载 EXE | Release 已内置运行时，无需预装 Node / 浏览器 |
 | Node.js | 20+ | **仅**源码开发或自行打包时需要 |
@@ -141,7 +141,7 @@ CanvasNotes/
 │   └── preload.cjs              # 预加载：窗口控制桥
 ├── src/                         # 渲染进程 UI
 │   ├── App.tsx
-│   ├── appMeta.ts               # 关于页展示的项目元数据 / 版本
+│   ├── appMeta.ts               # 关于页元数据（版本由 Vite 从 package.json 注入）
 │   ├── components/
 │   │   ├── BottomDock.tsx
 │   │   ├── CanvasBoard.tsx
@@ -157,15 +157,18 @@ CanvasNotes/
 │   ├── utils/checkUpdate.ts     # 对照 GitHub Release 检查更新
 │   ├── store.ts
 │   └── types.ts
+├── scripts/
+│   └── bump-version.mjs         # 升版本（patch/minor/major）
 ├── build/                       # electron-builder 资源（图标等）
 ├── .github/workflows/
 │   └── build-windows.yml        # 自动打包 Windows EXE
 ├── docs/images/                 # README 配图
-├── package.json
+├── package.json                 # 版本唯一来源（UI / 打包 / Release 共用）
 └── release/                     # 本地打包输出（不入库）
 ```
 
 > 新增功能并推送到 GitHub 时，请同步更新本 README（功能表、结构与使用说明）。
+> **每次更新 GitHub 仓库文件前**，先执行 `npm run version:patch`（或 `version:minor` / `version:major`）升版本；`package.json` 是唯一版本源，Vite 编译时注入到关于页与更新检查，electron-builder 产物名也会带上该版本。
 
 ---
 
