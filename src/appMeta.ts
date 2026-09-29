@@ -1,9 +1,10 @@
-/** Central app metadata shown in Settings → About. Keep version in sync with package.json. */
+/** Central app metadata shown in Settings → About. */
 export const APP_META = {
   displayName: '画布笔记',
   productName: 'CanvasNotes',
   author: 'kamuXiY',
-  version: '1.2.0',
+  /** Injected at compile time from package.json via Vite `define`. */
+  version: __APP_VERSION__,
   description: '画布笔记桌面客户端 — Upload Labs 风格节点 + ComfyUI 式连线',
   license: 'MIT',
   githubUrl: 'https://github.com/kamuxiy/CanvasNotes',
