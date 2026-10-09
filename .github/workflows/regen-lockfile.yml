@@ -1,0 +1,42 @@
+name: Regenerate package-lock
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'package.json'
+      - '.github/workflows/regen-lockfile.yml'
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Regenerate package-lock.json
+        run: |
+          rm -f package-lock.json
+          npm install --package-lock-only
+          node -e "const p=require('./package.json'); const l=require('./package-lock.json'); if(l.version!==p.version){l.version=p.version; if(l.packages['']) l.packages[''].version=p.version; require('fs').writeFileSync('package-lock.json', JSON.stringify(l,null,2)+'\n')}"
+          wc -c package-lock.json
+          head -5 package-lock.json
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          git status
+          if git diff --cached --quiet; then echo 'no changes'; exit 0; fi
+          git commit -m "chore: regenerate package-lock.json for 1.3.1"
+          git push
+      - name: Cleanup workflow
+        run: |
+          rm -f .github/workflows/regen-lockfile.yml
+          # also remove incomplete hex staging if present
+          rm -f scripts/package-lock.json.gz.hex.part* || true
+          rm -f .github/workflows/assemble-lockfile.yml || true
+          git add -A
+          git commit -m "ci: remove one-shot regen-lockfile workflow" || true
+          git push || true
