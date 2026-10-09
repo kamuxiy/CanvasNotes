@@ -112,7 +112,7 @@ npm run dist:win
 ## 环境依赖
 
 | 项目 | 要求 | 说明 |
-| :--- | :--- |
+| :--- | :--- | :--- |
 | 操作系统 | Windows 10 / 11（64 位） | 正式客户端目标平台 |
 | 运行方式 | 下载 EXE | Release 已内置运行时，无需预装 Node / 浏览器 |
 | Node.js | 20+ | **仅**源码开发或自行打包时需要 |
@@ -208,6 +208,21 @@ CanvasNotes/
 1. 点击卡片标题栏选中（Shift 可多选）
 2. 底部出现 **删除 / 复制**；单选时另有 **+左 / +右**
 3. **+左 / +右** 打开「新建连接点」对话框（默认类型为通用）
+
+---
+
+## 对话与需求历史
+
+立项以来的对话、需求碎片与版本变更已归档：
+
+| 文档 | 说明 |
+| :--- | :--- |
+| [docs/history](docs/history/README.md) | 对话索引 |
+| [PROMPT.md](docs/history/PROMPT.md) | 需求按主题整理 |
+| [CONVERSATION.md](docs/history/CONVERSATION.md) | 完整阶段时间线 |
+| [CHANGELOG.md](docs/CHANGELOG.md) | 按版本变更日志 |
+
+根目录 [`Prompt.txt`](Prompt.txt) 仍保留原始累计粘贴，供对照。
 
 ---
 
